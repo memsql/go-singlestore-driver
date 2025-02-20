@@ -1,3 +1,9 @@
+## Version 1.8.1-p4 (2025-02-20)
+
+Other changes:
+
+- Set `_client_name` connection attribute to `memsql/go-singlestore-driver` to distinguish from `Go-MySQL-Driver`.
+
 ## Version 1.8.1-p3 (2024-12-05)
 
 Other changes:
