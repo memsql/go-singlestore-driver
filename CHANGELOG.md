@@ -1,31 +1,8 @@
 # Changelog
 
-## Version 1.8.1-p4 (2025-02-20)
+## Version 1.9.2-p0
 
-Other changes:
-
-- Set `_client_name` connection attribute to `memsql/go-singlestore-driver` to distinguish from `Go-MySQL-Driver`.
-
-## Version 1.8.1-p3 (2024-12-05)
-
-Other changes:
-
-- Removed support for auth_gssapi_client to simplify build when this plugin is not needed
-
-
-## Version 1.8.1-p2 (2024-12-04)
-
-Major changes:
-
-- Add skipParseNumbers DSN option to allow the driver not to parse numbers on text protocol
-
-
-## Version 1.8.1-p1 (2024-10-09)
-
-Other changes:
-
-- Added support for auth_gssapi_client (kerberos) auth method
-
+- Apply changes from 1.8.1-p1 to 1.8.1-p4 on top of 1.9.2
 
 ## v1.9.2 (2025-04-07)
 
@@ -64,6 +41,34 @@ v1.9.2 is a re-release of v1.9.1 due to a release process issue; no changes were
 - Improve error handling. It reduces the "busy buffer" errors. (#1595, #1601, #1641)
 - Use `strconv.Atoi` to parse max_allowed_packet. (#1661)
 - `rejectReadOnly` option now handles ER_READ_ONLY_MODE (1290) error too. (#1660)
+
+
+## Version 1.8.1-p4 (2025-02-20)
+
+Other changes:
+
+- Set `_client_name` connection attribute to `memsql/go-singlestore-driver` to distinguish from `Go-MySQL-Driver`.
+
+
+## Version 1.8.1-p3 (2024-12-05)
+
+Other changes:
+
+- Removed support for auth_gssapi_client to simplify build when this plugin is not needed
+
+## Version 1.8.1-p2 (2024-12-04)
+
+
+Major changes:
+
+- Add skipParseNumbers DSN option to allow the driver not to parse numbers on text protocol
+
+
+## Version 1.8.1-p1 (2024-10-09)
+
+Other changes:
+
+- Added support for auth_gssapi_client (kerberos) auth method
 
 
 ## Version 1.8.1 (2024-03-26)
