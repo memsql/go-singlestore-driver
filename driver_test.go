@@ -81,11 +81,11 @@ func init() {
 		}
 		return defaultValue
 	}
-	user = env("MYSQL_TEST_USER", "root")
-	pass = env("MYSQL_TEST_PASS", "")
+	user = env("S2_TEST_USER", "root")
+	pass = env("S2_TEST_PASS", "")
 	prot = env("MYSQL_TEST_PROT", "tcp")
-	addr = env("MYSQL_TEST_ADDR", "localhost:3306")
-	dbname = env("MYSQL_TEST_DBNAME", "gotest")
+	addr = env("S2_TEST_ADDR", "localhost:3306")
+	dbname = env("S2_TEST_DB_NAME", "gotest")
 	isHelios = env("IS_ON_S2MS", "false") == "true"
 	netAddr = fmt.Sprintf("%s(%s)", prot, addr)
 	dsn = fmt.Sprintf("%s:%s@%s/%s?timeout=30s", user, pass, netAddr, dbname)
@@ -1513,9 +1513,6 @@ func TestFoundRows2(t *testing.T) {
 }
 
 func TestTLS(t *testing.T) {
-	if !isHelios{
-		t.Skipf("Skip as TLS is not configured by default")
-	}
 	tlsTestReq := func(dbt *DBTest) {
 		if err := dbt.db.Ping(); err != nil {
 			if err == ErrNoTLS {
@@ -1976,8 +1973,8 @@ func TestPreparedManyCols(t *testing.T) {
 }
 
 func TestConcurrent(t *testing.T) {
-	if enabled, _ := readBool(os.Getenv("MYSQL_TEST_CONCURRENT")); !enabled {
-		t.Skip("MYSQL_TEST_CONCURRENT env var not set")
+	if enabled, _ := readBool(os.Getenv("S2_TEST_CONCURRENT")); !enabled {
+		t.Skip("S2_TEST_CONCURRENT env var not set")
 	}
 
 	runTests(t, dsn, func(dbt *DBTest) {
@@ -2609,10 +2606,10 @@ func TestMultiResultSet(t *testing.T) {
 
 func TestMultiResultSetNoSelect(t *testing.T) {
 	runTestsWithMultiStatement(t, dsn, func(dbt *DBTest) {
-		_ = dbt.mustQuery("USE gotest")
-		_ = dbt.mustQuery("CREATE TEMPORARY TABLE multi_rs_no_select (id INT)")
+		_ = dbt.mustExec("CREATE TEMPORARY TABLE gotest.multi_rs_no_select (id INT)")
+		defer dbt.mustExec("DROP TABLE gotest.multi_rs_no_select")
 
-		rows := dbt.mustQuery("INSERT INTO multi_rs_no_select VALUES (1); INSERT INTO multi_rs_no_select VALUES (2);")
+		rows := dbt.mustQuery("INSERT INTO gotest.multi_rs_no_select VALUES (1); INSERT INTO gotest.multi_rs_no_select VALUES (2);")
 		defer rows.Close()
 
 		if rows.Next() {
@@ -3649,9 +3646,6 @@ func runCallCommand(dbt *DBTest, query, name string) {
 }
 
 func TestIssue1567(t *testing.T) {
-	if !isHelios{
-		t.Skipf("Skip as TLS is not configured by default")
-	}
 	// enable TLS.
 	runTests(t, dsn+"&tls=skip-verify", func(dbt *DBTest) {
 		var max int
