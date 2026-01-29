@@ -50,8 +50,8 @@ type mysqlConn struct {
 	closed   atomic.Bool // set when conn is closed, before closech is closed
 
 	// for query cancellation
-	connectionID  uint64
-	aggregatorID  uint64
+	connectionID  int64
+	aggregatorID  int64
 }
 
 // Helper function to call per-connection logger.
@@ -481,7 +481,7 @@ func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
 
 // fetchConnectionInfo retrieves connection_id and aggregator_id for query cancellation
 func (mc *mysqlConn) fetchConnectionInfo() error {
-	rows, err := mc.query("SELECT connection_id() :> BIGINT UNSIGNED, @@aggregator_id  :> BIGINT UNSIGNED", nil)
+	rows, err := mc.query("SELECT connection_id() :> BIGINT, @@aggregator_id :> BIGINT", nil)
 	if err != nil {
 		return err
 	}
@@ -493,8 +493,30 @@ func (mc *mysqlConn) fetchConnectionInfo() error {
 	}
 
 	// Parse connection_id and aggregator_id
-	mc.connectionID = dest[0].(uint64)
-	mc.aggregatorID = dest[1].(uint64)
+	// Convert connection_id to int64
+	switch v := dest[0].(type) {
+	case int64:
+		mc.connectionID = v
+	case []byte:
+		mc.connectionID, err = strconv.ParseInt(string(v), 10, 64)
+		if err != nil {
+			return fmt.Errorf("failed to parse connection_id: %v", err)
+		}
+	default:
+		return fmt.Errorf("unexpected type for connection_id: %T", dest[0])
+	}
+	// Convert aggregator_id to int64
+	switch v := dest[1].(type) {
+	case int64:
+		mc.aggregatorID = v
+	case []byte:
+		mc.aggregatorID, err = strconv.ParseInt(string(v), 10, 64)
+		if err != nil {
+			return fmt.Errorf("failed to parse aggregator_id: %v", err)
+		}
+	default:
+		return fmt.Errorf("unexpected type for aggregator_id: %T", dest[1])
+	}
 
 	return nil
 }
@@ -533,8 +555,13 @@ func (mc *mysqlConn) killQuery() {
 
 	// Execute KILL QUERY command
 	killQuery := fmt.Sprintf("KILL QUERY %d %d", mc.connectionID, mc.aggregatorID)
-	if _, err := killConn.(driver.ExecerContext).ExecContext(ctx, killQuery, nil); err != nil {
-		mc.log("failed to execute KILL QUERY:", err)
+	execer, ok := killConn.(driver.ExecerContext)
+	if !ok {
+		mc.log("failed to execute KILL QUERY: connection does not implement driver.ExecerContext")
+		return
+	}
+	if _, err := execer.ExecContext(ctx, killQuery, nil); err != nil {
+		mc.log("failed to execute KILL QUERY to cancel it:", err)
 	}
 }
 
