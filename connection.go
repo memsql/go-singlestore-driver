@@ -48,6 +48,10 @@ type mysqlConn struct {
 	finished chan<- struct{}
 	canceled atomicError // set non-nil if conn is canceled
 	closed   atomic.Bool // set when conn is closed, before closech is closed
+
+	// for query cancellation
+	connectionID  uint64
+	aggregatorID  uint64
 }
 
 // Helper function to call per-connection logger.
@@ -475,10 +479,63 @@ func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
 	return nil, err
 }
 
+// fetchConnectionInfo retrieves connection_id and aggregator_id for query cancellation
+func (mc *mysqlConn) fetchConnectionInfo() error {
+	rows, err := mc.query("SELECT connection_id() :> BIGINT UNSIGNED, @@aggregator_id  :> BIGINT UNSIGNED", nil)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	dest := make([]driver.Value, 2)
+	if err = rows.Next(dest); err != nil {
+		return err
+	}
+
+	// Parse connection_id and aggregator_id
+	mc.connectionID = dest[0].(uint64)
+	mc.aggregatorID = dest[1].(uint64)
+
+	return nil
+}
+
 // cancel is called when the query has canceled.
 func (mc *mysqlConn) cancel(err error) {
 	mc.canceled.Set(err)
+	// Try to kill the running query before cleanup
+	mc.killQuery()
 	mc.cleanup()
+}
+
+// killQuery sends KILL QUERY command to terminate the running query
+func (mc *mysqlConn) killQuery() {
+	// Only attempt to kill if we have connection info
+	if mc.connectionID == 0 {
+		return
+	}
+
+	// We need to open a new connection to send the KILL command
+	// because the current connection is busy running the query
+	if mc.connector == nil {
+		return
+	}
+
+	// Create a new connection using the same connector
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	killConn, err := mc.connector.Connect(ctx)
+	if err != nil {
+		mc.log("failed to create connection for KILL QUERY:", err)
+		return
+	}
+	defer killConn.Close()
+
+	// Execute KILL QUERY command
+	killQuery := fmt.Sprintf("KILL QUERY %d %d", mc.connectionID, mc.aggregatorID)
+	if _, err := killConn.(driver.ExecerContext).ExecContext(ctx, killQuery, nil); err != nil {
+		mc.log("failed to execute KILL QUERY:", err)
+	}
 }
 
 // finish is called when the query has succeeded.
