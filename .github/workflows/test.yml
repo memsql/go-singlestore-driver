@@ -16,11 +16,11 @@ env:
   S2_TEST_CONCURRENT: 0
 
 jobs:
-  # lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: dominikh/staticcheck-action@v1.3.1
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dominikh/staticcheck-action@v1.3.1
   fetch-s2-versions:
     runs-on: ubuntu-latest
     outputs:

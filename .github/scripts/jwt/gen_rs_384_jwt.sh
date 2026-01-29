@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eo pipefail
-# TODO: make this script configurable
+# attention: this script needs to be changed before any actual usage
 
 PEM=$( cat ~/RS384.key )
 

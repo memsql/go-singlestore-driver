@@ -563,7 +563,7 @@ func (mc *okHandler) readResultSetHeaderPacket() (int, error) {
 	return int(num), nil
 }
 
-// TODO: SingleStore add custom error handling
+// TODO: PLAT-7784 add custom error handling for SingleStore
 // Error Packet
 // http://dev.mysql.com/doc/internals/en/generic-response-packets.html#packet-ERR_Packet
 func (mc *mysqlConn) handleErrorPacket(data []byte) error {
