@@ -59,7 +59,6 @@ var (
 	dsn       string
 	netAddr   string
 	available bool
-	isHelios  bool
 )
 
 var (
@@ -86,7 +85,6 @@ func init() {
 	prot = env("MYSQL_TEST_PROT", "tcp")
 	addr = env("S2_TEST_ADDR", "localhost:3306")
 	dbname = env("S2_TEST_DB_NAME", "gotest")
-	isHelios = env("IS_ON_S2MS", "false") == "true"
 	netAddr = fmt.Sprintf("%s(%s)", prot, addr)
 	dsn = fmt.Sprintf("%s:%s@%s/%s?timeout=30s", user, pass, netAddr, dbname)
 	c, err := net.Dial(prot, addr)
@@ -1041,6 +1039,7 @@ func TestDateTime(t *testing.T) {
 					if !zeroDateSupported && ((setup.s == tstr0[:len(setup.s)]) || 
 						(setup.t.IsZero() && binaryTime.Binary())) {
 						// skip disallowed 0000-00-00 date
+						// in binary case, SELECT cast('0000-00-00' as TIME(0)) is generated and fails
 						continue
 					}
 					setup.run(dbt, setups.dbtype, setups.tlayout, textString)
@@ -2606,10 +2605,10 @@ func TestMultiResultSet(t *testing.T) {
 
 func TestMultiResultSetNoSelect(t *testing.T) {
 	runTestsWithMultiStatement(t, dsn, func(dbt *DBTest) {
-		_ = dbt.mustExec("CREATE TEMPORARY TABLE gotest.multi_rs_no_select (id INT)")
-		defer dbt.mustExec("DROP TABLE gotest.multi_rs_no_select")
+		_ = dbt.mustExec("CREATE TEMPORARY TABLE multi_rs_no_select (id INT)")
+		defer dbt.mustExec("DROP TABLE multi_rs_no_select")
 
-		rows := dbt.mustQuery("INSERT INTO gotest.multi_rs_no_select VALUES (1); INSERT INTO gotest.multi_rs_no_select VALUES (2);")
+		rows := dbt.mustQuery("INSERT INTO multi_rs_no_select VALUES (1); INSERT INTO multi_rs_no_select VALUES (2);")
 		defer rows.Close()
 
 		if rows.Next() {

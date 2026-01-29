@@ -8,3 +8,4 @@ ehthumbs.db
 Thumbs.db
 .idea
 .vscode
+.github/scripts/ssl/*.pem
