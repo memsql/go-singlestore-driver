@@ -519,7 +519,7 @@ func (mc *mysqlConn) fetchConnectionInfo() error {
 			return fmt.Errorf("failed to parse aggregator_id: %v", err)
 		}
 	case nil:
-		aggregatorID = -1  // not an aggregator (should not happen for user connections)
+		aggregatorID = -1  // not an aggregator, query cancellation not supported
 	default:
 		return fmt.Errorf("unexpected type for aggregator_id: %T", dest[1])
 	}
@@ -546,7 +546,7 @@ func (mc *mysqlConn) killQuery() {
 	connectionID := mc.connectionID
 	aggregatorID := mc.aggregatorID
 	mc.connInfoMu.RUnlock()
-	
+
 	// Only attempt to kill if we have connection info
 	if connectionID == 0 || aggregatorID <= 0 {
 		return
@@ -577,7 +577,7 @@ func (mc *mysqlConn) killQuery() {
 		return
 	}
 	if _, err := execer.ExecContext(ctx, killQuery, nil); err != nil {
-		mc.log("failed to execute KILL QUERY to cancel it:", err)
+		mc.log("failed to execute KILL QUERY:", err)
 	}
 }
 
