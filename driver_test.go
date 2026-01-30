@@ -2773,8 +2773,11 @@ func TestContextCancelQuery(t *testing.T) {
 		dbt.mustExec("CREATE TABLE " + tbl + " (v INTEGER)")
 		ctx, cancel := context.WithCancel(context.Background())
 
-		// Delay execution for just a bit until db.ExecContext has begun.
-		defer time.AfterFunc(250*time.Millisecond, cancel).Stop()
+		// Delay execution for just a bit until db.QueryContext has begun.
+		go func() {
+			time.Sleep(250 * time.Millisecond)
+			cancel()
+		}()
 
 		// This query will be canceled.
 		startTime := time.Now()
