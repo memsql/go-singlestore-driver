@@ -481,7 +481,7 @@ func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
 
 // fetchConnectionInfo retrieves connection_id and aggregator_id for query cancellation
 func (mc *mysqlConn) fetchConnectionInfo() error {
-	rows, err := mc.query("SELECT connection_id() :> BIGINT, @@aggregator_id :> BIGINT", nil)
+	rows, err := mc.query("SELECT connection_id() :> BIGINT, aggregator_id() :> BIGINT", nil)
 	if err != nil {
 		return err
 	}
@@ -546,6 +546,8 @@ func (mc *mysqlConn) killQuery() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	mc.connector.cfg.skipFetchInfo = true
+	defer func() { mc.connector.cfg.skipFetchInfo = false }()
 	killConn, err := mc.connector.Connect(ctx)
 	if err != nil {
 		mc.log("failed to create connection for KILL QUERY:", err)

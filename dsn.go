@@ -76,7 +76,8 @@ type Config struct {
 	// unexported fields. new options should be come here.
 	// boolean first. alphabetical order.
 
-	compress bool // Enable zlib compression
+	compress bool       // Enable zlib compression
+	skipFetchInfo bool  // Don't fetch connection_id and aggregator_id on connect
 
 	beforeConnect func(context.Context, *Config) error // Invoked before a connection is established
 	pubKey        *rsa.PublicKey                       // Server public key

@@ -219,9 +219,11 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 	}
 
 	// Fetch connection_id and aggregator_id for query cancellation support
-	if err = mc.fetchConnectionInfo(); err != nil {
-		mc.Close()
-		return nil, err
+	if !mc.cfg.skipFetchInfo {
+		if err = mc.fetchConnectionInfo(); err != nil {
+			mc.Close()
+			return nil, err
+		}
 	}
 
 	return mc, nil

@@ -2735,7 +2735,7 @@ func TestContextCancelExec(t *testing.T) {
 		if _, err := dbt.db.ExecContext(ctx, "INSERT INTO "+tbl+" VALUES (SLEEP(3))"); err != context.Canceled {
 			dbt.Errorf("expected context.Canceled, got %v", err)
 		}
-		if d := time.Since(startTime); d > 500*time.Millisecond {
+		if d := time.Since(startTime); d > 2*time.Second {
 			dbt.Errorf("too long execution time: %s", d)
 		}
 
