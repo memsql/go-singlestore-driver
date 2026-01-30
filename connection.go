@@ -542,13 +542,13 @@ func (mc *mysqlConn) cancel(err error) {
 
 // killQuery sends KILL QUERY command to terminate the running query
 func (mc *mysqlConn) killQuery() {
-	// Only attempt to kill if we have connection info
 	mc.connInfoMu.RLock()
 	connectionID := mc.connectionID
 	aggregatorID := mc.aggregatorID
 	mc.connInfoMu.RUnlock()
-
-	if connectionID == 0 {
+	
+	// Only attempt to kill if we have connection info
+	if connectionID == 0 || aggregatorID <= 0 {
 		return
 	}
 
@@ -559,11 +559,9 @@ func (mc *mysqlConn) killQuery() {
 	}
 
 	// Create a new connection using the same connector
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	mc.connector.cfg.skipFetchInfo = true
-	defer func() { mc.connector.cfg.skipFetchInfo = false }()
 	killConn, err := mc.connector.Connect(ctx)
 	if err != nil {
 		mc.log("failed to create connection for KILL QUERY:", err)

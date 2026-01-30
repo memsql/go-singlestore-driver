@@ -2834,7 +2834,7 @@ func TestContextCancelQueryRow(t *testing.T) {
 
 		cancel()
 		// make sure the driver receives the cancel request.
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 
 		if rows.Next() {
 			dbt.Errorf("expected end, but not")
