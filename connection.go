@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -50,6 +51,7 @@ type mysqlConn struct {
 	closed   atomic.Bool // set when conn is closed, before closech is closed
 
 	// for query cancellation
+	connInfoMu    sync.RWMutex
 	connectionID  int64
 	aggregatorID  int64
 }
@@ -492,13 +494,15 @@ func (mc *mysqlConn) fetchConnectionInfo() error {
 		return err
 	}
 
-	// Parse connection_id and aggregator_id
+	// these will hold the values for mc.connectionID and mc.aggregatorID
+	var connectionID, aggregatorID int64
+
 	// Convert connection_id to int64
 	switch v := dest[0].(type) {
 	case int64:
-		mc.connectionID = v
+		connectionID = v
 	case []byte:
-		mc.connectionID, err = strconv.ParseInt(string(v), 10, 64)
+		connectionID, err = strconv.ParseInt(string(v), 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to parse connection_id: %v", err)
 		}
@@ -508,15 +512,22 @@ func (mc *mysqlConn) fetchConnectionInfo() error {
 	// Convert aggregator_id to int64
 	switch v := dest[1].(type) {
 	case int64:
-		mc.aggregatorID = v
+		aggregatorID = v
 	case []byte:
-		mc.aggregatorID, err = strconv.ParseInt(string(v), 10, 64)
+		aggregatorID, err = strconv.ParseInt(string(v), 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to parse aggregator_id: %v", err)
 		}
+	case nil:
+		aggregatorID = -1  // not an aggregator (should not happen for user connections)
 	default:
 		return fmt.Errorf("unexpected type for aggregator_id: %T", dest[1])
 	}
+
+	mc.connInfoMu.Lock()
+	mc.connectionID = connectionID
+	mc.aggregatorID = aggregatorID
+	mc.connInfoMu.Unlock()
 
 	return nil
 }
@@ -532,7 +543,12 @@ func (mc *mysqlConn) cancel(err error) {
 // killQuery sends KILL QUERY command to terminate the running query
 func (mc *mysqlConn) killQuery() {
 	// Only attempt to kill if we have connection info
-	if mc.connectionID == 0 {
+	mc.connInfoMu.RLock()
+	connectionID := mc.connectionID
+	aggregatorID := mc.aggregatorID
+	mc.connInfoMu.RUnlock()
+
+	if connectionID == 0 {
 		return
 	}
 
@@ -556,7 +572,7 @@ func (mc *mysqlConn) killQuery() {
 	defer killConn.Close()
 
 	// Execute KILL QUERY command
-	killQuery := fmt.Sprintf("KILL QUERY %d %d", mc.connectionID, mc.aggregatorID)
+	killQuery := fmt.Sprintf("KILL QUERY %d %d", connectionID, aggregatorID)
 	execer, ok := killConn.(driver.ExecerContext)
 	if !ok {
 		mc.log("failed to execute KILL QUERY: connection does not implement driver.ExecerContext")
