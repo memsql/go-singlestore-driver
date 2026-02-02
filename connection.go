@@ -481,6 +481,28 @@ func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
 	return nil, err
 }
 
+// parseDriverValueToInt64 converts a driver.Value to int64
+// allowNil determines whether nil values are allowed (returns -1 for nil)
+func parseDriverValueToInt64(val driver.Value, fieldName string, allowNil bool) (int64, error) {
+	switch v := val.(type) {
+	case int64:
+		return v, nil
+	case []byte:
+		result, err := strconv.ParseInt(string(v), 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse %s: %v", fieldName, err)
+		}
+		return result, nil
+	case nil:
+		if allowNil {
+			return -1, nil
+		}
+		return 0, fmt.Errorf("unexpected nil value for %s", fieldName)
+	default:
+		return 0, fmt.Errorf("unexpected type for %s: %T", fieldName, val)
+	}
+}
+
 // fetchConnectionInfo retrieves connection_id and aggregator_id for query cancellation
 func (mc *mysqlConn) fetchConnectionInfo() error {
 	rows, err := mc.query("SELECT connection_id() :> BIGINT, aggregator_id() :> BIGINT", nil)
@@ -497,31 +519,12 @@ func (mc *mysqlConn) fetchConnectionInfo() error {
 	// these will hold the values for mc.connectionID and mc.aggregatorID
 	var connectionID, aggregatorID int64
 
-	// Convert connection_id to int64
-	switch v := dest[0].(type) {
-	case int64:
-		connectionID = v
-	case []byte:
-		connectionID, err = strconv.ParseInt(string(v), 10, 64)
-		if err != nil {
-			return fmt.Errorf("failed to parse connection_id: %v", err)
-		}
-	default:
-		return fmt.Errorf("unexpected type for connection_id: %T", dest[0])
+	if connectionID, err = parseDriverValueToInt64(dest[0], "connection_id", false); err != nil {
+		return err
 	}
-	// Convert aggregator_id to int64
-	switch v := dest[1].(type) {
-	case int64:
-		aggregatorID = v
-	case []byte:
-		aggregatorID, err = strconv.ParseInt(string(v), 10, 64)
-		if err != nil {
-			return fmt.Errorf("failed to parse aggregator_id: %v", err)
-		}
-	case nil:
-		aggregatorID = -1  // not an aggregator, query cancellation not supported
-	default:
-		return fmt.Errorf("unexpected type for aggregator_id: %T", dest[1])
+
+	if aggregatorID, err = parseDriverValueToInt64(dest[1], "aggregator_id", true); err != nil {
+		return err
 	}
 
 	mc.connInfoMu.Lock()
