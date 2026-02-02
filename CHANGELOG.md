@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.9.2-p1
+
+Major changes:
+
+- Implement active query cancellation using `KILL QUERY` command when context is cancelled. When a query is cancelled via context, the driver now opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server, providing immediate resource cleanup.
+
 ## Version 1.9.2-p0
 
 - Apply changes from 1.8.1-p1 to 1.8.1-p4 on top of 1.9.2

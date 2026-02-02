@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -48,6 +49,11 @@ type mysqlConn struct {
 	finished chan<- struct{}
 	canceled atomicError // set non-nil if conn is canceled
 	closed   atomic.Bool // set when conn is closed, before closech is closed
+
+	// for query cancellation
+	connInfoMu    sync.RWMutex
+	connectionID  int64
+	aggregatorID  int64
 }
 
 // Helper function to call per-connection logger.
@@ -475,10 +481,107 @@ func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
 	return nil, err
 }
 
+// parseDriverValueToInt64 converts a driver.Value to int64
+// allowNil determines whether nil values are allowed (returns -1 for nil)
+func parseDriverValueToInt64(val driver.Value, fieldName string, allowNil bool) (int64, error) {
+	switch v := val.(type) {
+	case int64:
+		return v, nil
+	case []byte:
+		result, err := strconv.ParseInt(string(v), 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse %s: %v", fieldName, err)
+		}
+		return result, nil
+	case nil:
+		if allowNil {
+			return -1, nil
+		}
+		return 0, fmt.Errorf("unexpected nil value for %s", fieldName)
+	default:
+		return 0, fmt.Errorf("unexpected type for %s: %T", fieldName, val)
+	}
+}
+
+// fetchConnectionInfo retrieves connection_id and aggregator_id for query cancellation
+func (mc *mysqlConn) fetchConnectionInfo() error {
+	rows, err := mc.query("SELECT connection_id() :> BIGINT, aggregator_id() :> BIGINT", nil)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	dest := make([]driver.Value, 2)
+	if err = rows.Next(dest); err != nil {
+		return err
+	}
+
+	// these will hold the values for mc.connectionID and mc.aggregatorID
+	var connectionID, aggregatorID int64
+
+	if connectionID, err = parseDriverValueToInt64(dest[0], "connection_id", false); err != nil {
+		return err
+	}
+
+	if aggregatorID, err = parseDriverValueToInt64(dest[1], "aggregator_id", true); err != nil {
+		return err
+	}
+
+	mc.connInfoMu.Lock()
+	mc.connectionID = connectionID
+	mc.aggregatorID = aggregatorID
+	mc.connInfoMu.Unlock()
+
+	return nil
+}
+
 // cancel is called when the query has canceled.
 func (mc *mysqlConn) cancel(err error) {
 	mc.canceled.Set(err)
+	// Try to kill the running query before cleanup
+	mc.killQuery()
 	mc.cleanup()
+}
+
+// killQuery sends KILL QUERY command to terminate the running query
+func (mc *mysqlConn) killQuery() {
+	mc.connInfoMu.RLock()
+	connectionID := mc.connectionID
+	aggregatorID := mc.aggregatorID
+	mc.connInfoMu.RUnlock()
+
+	// Only attempt to kill if we have connection info
+	if connectionID == 0 || aggregatorID <= 0 {
+		return
+	}
+
+	// We need to open a new connection to send the KILL command
+	// because the current connection is busy running the query
+	if mc.connector == nil {
+		return
+	}
+
+	// Create a new connection using the same connector
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	killConn, err := mc.connector.Connect(ctx)
+	if err != nil {
+		mc.log("failed to create connection for KILL QUERY:", err)
+		return
+	}
+	defer killConn.Close()
+
+	// Execute KILL QUERY command
+	killQuery := fmt.Sprintf("KILL QUERY %d %d", connectionID, aggregatorID)
+	execer, ok := killConn.(driver.ExecerContext)
+	if !ok {
+		mc.log("failed to execute KILL QUERY: connection does not implement driver.ExecerContext")
+		return
+	}
+	if _, err := execer.ExecContext(ctx, killQuery, nil); err != nil {
+		mc.log("failed to execute KILL QUERY:", err)
+	}
 }
 
 // finish is called when the query has succeeded.

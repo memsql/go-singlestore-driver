@@ -543,6 +543,11 @@ See [context support in the database/sql package](https://golang.org/doc/go1.8#d
 > [!IMPORTANT]
 > The `QueryContext`, `ExecContext`, etc. variants provided by `database/sql` will cause the connection to be closed if the provided context is cancelled or timed out before the result is received by the driver.
 
+### Query Cancellation
+
+Starting from version **1.9.2-p1**, this driver implements improved query cancellation for SingleStore using the `KILL QUERY` command.
+
+When a context is cancelled during query execution, the driver opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server before closing the original connection. This is done to make sure the server resources are freed immediately.
 
 ### `LOAD DATA LOCAL INFILE` support
 For this feature you need direct access to the package. Therefore you must change the import path (no `_`):
