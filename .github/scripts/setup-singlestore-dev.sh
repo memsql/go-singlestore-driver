@@ -31,7 +31,6 @@ if [[ "${EXISTS}" -eq 0 ]]; then
         --name ${CONTAINER_NAME} \
         -v ${PWD}/.github/scripts/ssl:/test-ssl \
         -v ${PWD}/.github/scripts/jwt:/test-jwt \
-        -e SINGLESTORE_LICENSE=${SINGLESTORE_LICENSE} \
         -e ROOT_PASSWORD="${SINGLESTORE_PASSWORD}" \
         -e SINGLESTORE_VERSION=${VERSION} \
         -p ${S2_MASTER_PORT}:3306 \
