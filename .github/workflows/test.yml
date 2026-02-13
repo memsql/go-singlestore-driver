@@ -16,7 +16,6 @@ on:
 
 env:
   S2_TEST_USER: root
-  S2_TEST_PASS: ${{ secrets.SINGLESTORE_PASSWORD }}
   S2_TEST_PORT: 5506
   S2_TEST_ADDR: 127.0.0.1:5506
   S2_TEST_DB_NAME: gotest
@@ -69,6 +68,9 @@ jobs:
         with:
           ref: ${{ github.event.inputs.pr_number && format('refs/pull/{0}/merge', github.event.inputs.pr_number) || github.ref }}
 
+      - name: Clean disk on GitHub Runner
+        run: ./.github/scripts/clean_disk_github_runner.sh
+
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
@@ -83,13 +85,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mysql-client
 
+      - name: Save password to output
+        id: s2_pw
+        run: echo "singlestore_password=$(openssl rand -base64 16)" >> $GITHUB_OUTPUT
+
       - name: Setup test cluster
         run: ./.github/scripts/setup-singlestore-dev.sh
         env:
-          SINGLESTORE_LICENSE: ${{ secrets.SINGLESTORE_LICENSE }}
-          ROOT_PASSWORD: ${{ secrets.SINGLESTORE_PASSWORD }}
+          S2_TEST_PASS: ${{ steps.s2_pw.outputs.singlestore_password }}
           SINGLESTORE_VERSION: ${{ matrix.singlestore_version }}
 
       - name: Run tests
+        env:
+          S2_TEST_PASS: ${{ steps.s2_pw.outputs.singlestore_password }}
         run: |
           go test -v -race
