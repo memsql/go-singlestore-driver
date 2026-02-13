@@ -7,7 +7,6 @@ df -h
 sudo rm -rf /usr/share/dotnet
 sudo rm -rf /opt/ghc
 sudo rm -rf /usr/local/share/boost
-sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 sudo rm -rf /usr/local/lib/android
 sudo rm -rf /opt/hostedtoolcache/Ruby
 
@@ -52,7 +51,8 @@ sudo apt-get purge -y \
 sudo apt-get autoremove -y || true
 sudo apt-get clean || true
 
-# Uncomment if more cleanup is need, now it's commented to save time
+# Uncomment if more cleanup is needed, now it's commented to save time
+# sudo rm -rf "$AGENT_TOOLSDIRECTORY" || true
 # docker system prune -af || true
 # docker volume prune -f || true
 
