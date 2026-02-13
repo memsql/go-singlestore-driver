@@ -92,7 +92,7 @@ jobs:
       - name: Setup test cluster
         run: ./.github/scripts/setup-singlestore-dev.sh
         env:
-          ROOT_PASSWORD: ${{ steps.s2_pw.outputs.singlestore_password }}
+          S2_TEST_PASS: ${{ steps.s2_pw.outputs.singlestore_password }}
           SINGLESTORE_VERSION: ${{ matrix.singlestore_version }}
 
       - name: Run tests
