@@ -3649,6 +3649,53 @@ func runCallCommand(dbt *DBTest, query, name string) {
 	}
 }
 
+func TestSpecialCharactersInCredentials(t *testing.T) {
+	const (
+		specialUser = "my:user"
+		specialPass = ":my@pas&s"
+	)
+
+	// Connect as admin to create the user
+	adminDB, err := sql.Open(driverNameTest, dsn)
+	if err != nil {
+		t.Fatalf("error connecting as admin: %s", err)
+	}
+	defer adminDB.Close()
+
+	if _, err = adminDB.Exec("DROP USER IF EXISTS ?@'%'", specialUser); err != nil {
+		t.Fatalf("error dropping user: %s", err)
+	}
+
+	if _, err = adminDB.Exec("CREATE USER ?@'%' IDENTIFIED BY ?", specialUser, specialPass); err != nil {
+		t.Fatalf("error creating user: %s", err)
+	}
+	defer adminDB.Exec("DROP USER ?@'%'", specialUser)
+
+	// Build config directly and derive a DSN from it
+	cfg := NewConfig()
+	cfg.Net = prot
+	cfg.Addr = addr
+	cfg.User = specialUser
+	cfg.Passwd = specialPass
+
+	specialDSN := cfg.FormatDSN()
+	t.Logf("DSN with special characters: %s", specialDSN)
+
+	db2, err := sql.Open(driverNameTest, specialDSN)
+	if err != nil {
+		t.Fatalf("error opening db with special-character DSN: %s", err)
+	}
+	defer db2.Close()
+
+	var currentUser string
+	if err := db2.QueryRow("SELECT CURRENT_USER()").Scan(&currentUser); err != nil {
+		t.Fatalf("error querying with special-character credentials: %s", err)
+	}
+	if !strings.HasPrefix(currentUser, specialUser) {
+		t.Errorf("expected current user to start with %q, got %q", specialUser, currentUser)
+	}
+}
+
 func TestIssue1567(t *testing.T) {
 	// enable TLS.
 	runTests(t, dsn+"&tls=skip-verify", func(dbt *DBTest) {

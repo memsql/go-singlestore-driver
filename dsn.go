@@ -257,10 +257,11 @@ func (cfg *Config) FormatDSN() string {
 
 	// [username[:password]@]
 	if len(cfg.User) > 0 {
-		buf.WriteString(cfg.User)
+		// Encode ':' in username so it is not confused with the user:passwd separator.
+		buf.WriteString(url.QueryEscape(cfg.User))
 		if len(cfg.Passwd) > 0 {
 			buf.WriteByte(':')
-			buf.WriteString(cfg.Passwd)
+			buf.WriteString(url.QueryEscape(cfg.Passwd))
 		}
 		buf.WriteByte('@')
 	}
@@ -425,11 +426,17 @@ func ParseDSN(dsn string) (cfg *Config, err error) {
 						// Find the first ':' in dsn[:j]
 						for k = 0; k < j; k++ {
 							if dsn[k] == ':' {
-								cfg.Passwd = dsn[k+1 : j]
+								passwd := dsn[k+1 : j]
+								if cfg.Passwd, err = url.QueryUnescape(passwd); err != nil {
+									return nil, fmt.Errorf("invalid passwd %q: %w", passwd, err)
+								}
 								break
 							}
 						}
-						cfg.User = dsn[:k]
+						user := dsn[:k]
+						if cfg.User, err = url.QueryUnescape(user); err != nil {
+							return nil, fmt.Errorf("invalid user %q: %w", user, err)
+						}
 
 						break
 					}

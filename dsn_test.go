@@ -83,6 +83,9 @@ var testDSNs = []struct {
 }, {
 	"tcp(127.0.0.1)/dbname?ctxCancellationEnabled=true",
 	&Config{Net: "tcp", Addr: "127.0.0.1:3306", DBName: "dbname", Loc: time.UTC, MaxAllowedPacket: defaultMaxAllowedPacket, Logger: defaultLogger, AllowNativePasswords: true, CheckConnLiveness: true, CtxCancellationEnabled: true},
+}, {
+	"us%3Aer:password@tcp(localhost:3306)/dbname",
+	&Config{User: "us:er", Passwd: "password", Net: "tcp", Addr: "localhost:3306", DBName: "dbname", Loc: time.UTC, MaxAllowedPacket: defaultMaxAllowedPacket, Logger: defaultLogger, AllowNativePasswords: true, CheckConnLiveness: true},
 },
 }
 
@@ -427,6 +430,96 @@ func TestNormalizeTLSConfig(t *testing.T) {
 			if cfg.TLS.InsecureSkipVerify != tc.want.InsecureSkipVerify {
 				t.Errorf("tls.InsecureSkipVerify doesn't match (want: %T, got :%T)",
 					tc.want.InsecureSkipVerify, cfg.TLS.InsecureSkipVerify)
+			}
+		})
+	}
+}
+
+func TestDSNUsernameWithColon(t *testing.T) {
+	testCases := []struct {
+		name string
+		user string
+	}{
+		{"colon in username", "us:er"},
+		{"multiple colons", "a:b:c"},
+		{"leading colon", ":user"},
+		{"trailing colon", "user:"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := NewConfig()
+			cfg.User = tc.user
+			cfg.Passwd = "password"
+			cfg.Net = "tcp"
+			cfg.Addr = "localhost:3306"
+			cfg.DBName = "testdb"
+
+			dsn := cfg.FormatDSN()
+
+			parsed, err := ParseDSN(dsn)
+			if err != nil {
+				t.Fatalf("failed to parse DSN %q: %v", dsn, err)
+			}
+
+			if parsed.User != tc.user {
+				t.Errorf("user mismatch: got %q, want %q (DSN: %s)", parsed.User, tc.user, dsn)
+			}
+
+			if parsed.Passwd != "password" {
+				t.Errorf("passwd mismatch: got %q, want %q (DSN: %s)", parsed.Passwd, "password", dsn)
+			}
+
+			dsn2 := parsed.FormatDSN()
+			if dsn != dsn2 {
+				t.Errorf("DSN not stable after round-trip: got %q, want %q", dsn2, dsn)
+			}
+		})
+	}
+}
+
+func TestDSNPasswordSpecialChars(t *testing.T) {
+	testCases := []struct {
+		name     string
+		password string
+	}{
+		{"at sign", "p@ssword"},
+		{"ampersand", "p&ssword"},
+		{"multiple at signs", "p@ss@word"},
+		{"multiple ampersands", "p&ss&word"},
+		{"at and ampersand", "p@ss&word"},
+		{"complex special chars", "p@ss&w@rd&test=value"},
+		{"looks like query param", "pass&key=value&other=123"},
+		{"slash in password", "p/ss/word"},
+		{"at slash and ampersand", "p@/ss&word"},
+		{"colon in password", "p:assword"},
+		{"question mark", "p?ssword"},
+		{"equals sign", "pass=word"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := NewConfig()
+			cfg.User = "testuser"
+			cfg.Passwd = tc.password
+			cfg.Net = "tcp"
+			cfg.Addr = "localhost:3306"
+			cfg.DBName = "testdb"
+
+			dsn := cfg.FormatDSN()
+
+			parsed, err := ParseDSN(dsn)
+			if err != nil {
+				t.Fatalf("failed to parse DSN %q: %v", dsn, err)
+			}
+
+			if parsed.Passwd != tc.password {
+				t.Errorf("password mismatch: got %q, want %q (DSN: %s)", parsed.Passwd, tc.password, dsn)
+			}
+
+			dsn2 := parsed.FormatDSN()
+			if dsn != dsn2 {
+				t.Errorf("DSN not stable after round-trip: got %q, want %q", dsn2, dsn)
 			}
 		})
 	}
