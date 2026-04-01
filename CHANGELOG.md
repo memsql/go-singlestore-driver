@@ -1,5 +1,23 @@
 # Changelog
 
+## Version 1.9.3-p0
+
+- disable fetch connection info for kill connection (#10)
+
+## v1.9.3 (2025-06-13)
+
+* `tx.Commit()` and `tx.Rollback()` returned `ErrInvalidConn` always.
+  Now they return cached real error if present. (#1690)
+
+* Optimize reading small resultsets to fix performance regression
+  introduced by compression protocol support. (#1707)
+
+* Fix `db.Ping()` on compressed connection. (#1723)
+
+## Version 1.9.2-p2
+
+- introduce CtxCancellationEnabled flag. It is recommended to set it to `true` for SingleStore connections
+
 ## Version 1.9.2-p1
 
 Major changes:
