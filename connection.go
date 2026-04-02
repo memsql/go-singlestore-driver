@@ -450,8 +450,7 @@ func (mc *mysqlConn) query(query string, args []driver.Value) (*textRows, error)
 	return rows, err
 }
 
-// Gets the value of the given MySQL System Variable
-// The returned byte slice is only valid until the next read
+// Gets the value of the given System Variable
 func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
 	// Send command
 	handleOk := mc.clearResult()
@@ -475,7 +474,11 @@ func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
 
 		dest := make([]driver.Value, resLen)
 		if err = rows.readRow(dest); err == nil {
-			return dest[0].([]byte), mc.readUntilEOF()
+			// Copy the result before readUntilEOF since it may reuse the buffer
+			val := dest[0].([]byte)
+			result := make([]byte, len(val))
+			copy(result, val)
+			return result, mc.readUntilEOF()
 		}
 	}
 	return nil, err
