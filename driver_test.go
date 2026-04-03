@@ -1975,17 +1975,19 @@ func TestConcurrent(t *testing.T) {
 
 	runTests(t, dsn, func(dbt *DBTest) {
 
-		var max int
-		err := dbt.db.QueryRow("SELECT @@max_connections").Scan(&max)
+		var maxConnections int
+		err := dbt.db.QueryRow("SELECT @@max_connections").Scan(&maxConnections)
 		if err != nil {
 			dbt.Fatalf("%s", err.Error())
 		}
-		dbt.Logf("testing up to %d concurrent connections \r\n", max)
+		// not testing more than 2048 concurrent connections as we are on a small database cluster
+		maxConnections = min(maxConnections, 2048)
+		dbt.Logf("testing up to %d concurrent connections \r\n", maxConnections)
 
-		var remaining, succeeded int32 = int32(max), 0
+		var remaining, succeeded int32 = int32(maxConnections), 0
 
 		var wg sync.WaitGroup
-		wg.Add(max)
+		wg.Add(maxConnections)
 
 		var fatalError string
 		var once sync.Once
@@ -1995,7 +1997,7 @@ func TestConcurrent(t *testing.T) {
 			})
 		}
 
-		for i := 0; i < max; i++ {
+		for i := 0; i < maxConnections; i++ {
 			go func(id int) {
 				defer wg.Done()
 
