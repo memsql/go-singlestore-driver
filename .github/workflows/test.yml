@@ -19,7 +19,7 @@ env:
   S2_TEST_PORT: 5506
   S2_TEST_ADDR: 127.0.0.1:5506
   S2_TEST_DB_NAME: gotest
-  S2_TEST_CONCURRENT: 0
+  S2_TEST_CONCURRENT: 1
 
 jobs:
   fetch-s2-versions:
@@ -99,4 +99,10 @@ jobs:
         env:
           S2_TEST_PASS: ${{ steps.s2_pw.outputs.singlestore_password }}
         run: |
-          go test -v -race
+          go test -v -race -covermode=atomic -coverprofile=coverage.out -parallel 10
+
+      - name: Run benchmark
+        env:
+          S2_TEST_PASS: ${{ steps.s2_pw.outputs.singlestore_password }}
+        run: |
+          go test -run '^$' -bench .
