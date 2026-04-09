@@ -6,6 +6,7 @@ This driver is a fork of [Go-MySQL-Driver](https://github.com/go-sql-driver/mysq
 
 ---------------------------------------
   * [Features](#features)
+  * [Changes from Upstream Go-MySQL-Driver](#changes-from-upstream-go-mysql-driver)
   * [Requirements](#requirements)
   * [Installation](#installation)
   * [Usage](#usage)
@@ -39,6 +40,24 @@ This driver is a fork of [Go-MySQL-Driver](https://github.com/go-sql-driver/mysq
   * Optional `time.Time` parsing
   * Optional placeholder interpolation
   * Supports zlib compression.
+
+## Changes from Upstream Go-MySQL-Driver
+
+This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) with the following SingleStore-specific changes:
+
+### New Features
+
+* **Active Query Cancellation** (v1.9.2-p1): When a context is cancelled during query execution, if `ctxCancellationEnabled` is set to `true`, the driver now opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server, providing immediate resource cleanup. See [Query Cancellation](#query-cancellation) for details.
+
+* **`ctxCancellationEnabled` DSN Parameter** (v1.9.2-p2): A boolean flag to enable/disable the active query cancellation feature. It is set to `false` by default for backward compatibility, but is recommended to set this to `true` for SingleStore connections.
+
+* **`skipParseNumbers` DSN Parameter** (v1.8.1-p2): When set to `true`, tells the driver not to convert integers and floats to native Go data types, passing their string representation as returned by the server to `database/sql`. See [`skipParseNumbers`](#skipparsenumbers) for details.
+
+### Other Changes
+
+* **Client Name**: The `_client_name` connection attribute is set to `memsql/go-singlestore-driver` to distinguish from the upstream driver.
+
+* **SingleStore Compatibility Notes**: Some MySQL-specific parameters like `charset`, `collation`, and `allowOldPasswords` have no effect on SingleStore. These are documented in the [Parameters](#parameters) section.
 
 ## Requirements
 
@@ -361,8 +380,7 @@ Valid Values:   true, false
 Default:        false
 ```
 
-`skipParseNumbers=true` tells the driver not to convert integers and floats to the native go data types, and pass their
-string representation as returned by the server to `database/sql`
+**SingleStore-specific parameter.** `skipParseNumbers=true` tells the driver not to convert integers and floats to the native Go data types, and pass their string representation as returned by the server to `database/sql`. This can be useful when you need to preserve the exact numeric representation from the server.
 
 ##### `readTimeout`
 
@@ -455,6 +473,16 @@ Default:        none
 ```
 
 [Connection attributes](https://dev.mysql.com/doc/refman/8.0/en/performance-schema-connection-attribute-tables.html) are key-value pairs that application programs can pass to the server at connect time.
+
+##### `ctxCancellationEnabled`
+
+```
+Type:           bool
+Valid Values:   true, false
+Default:        false
+```
+
+**SingleStore-specific parameter.** When `ctxCancellationEnabled=true`, the driver will actively terminate running queries on the server when a context is cancelled, using the `KILL QUERY` command. This is recommended for SingleStore connections to ensure server resources are freed immediately upon cancellation. See [Query Cancellation](#query-cancellation) for more details.
 
 ##### System Variables
 
