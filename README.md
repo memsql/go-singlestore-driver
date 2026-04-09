@@ -57,7 +57,7 @@ This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/
 
 * **Client Name**: The `_client_name` connection attribute is set to `memsql/go-singlestore-driver` to distinguish from the upstream driver.
 
-* **SingleStore Compatibility Notes**: Some MySQL-specific parameters like `charset`, `collation`, and `allowOldPasswords` have no effect on SingleStore. These are documented in the [Parameters](#parameters) section.
+* **SingleStore Compatibility Notes**: Some MySQL-specific parameters like `charset`, `collation`, `allowOldPasswords`, `rejectReadOnly`, and `serverPubKey` have no effect on SingleStore. These are documented in the [Parameters](#parameters) section.
 
 ## Requirements
 
@@ -312,7 +312,7 @@ Default:        UTC
 
 Sets the location for time.Time values (when using `parseTime=true`). *"Local"* sets the system's location. See [time.LoadLocation](https://golang.org/pkg/time/#LoadLocation) for details.
 
-Note that this sets the location for time.Time values but does not change MySQL's [time_zone setting](https://dev.mysql.com/doc/refman/5.5/en/time-zone-support.html). For that see the [time_zone system variable](#system-variables), which can also be set as a DSN parameter.
+Note that this sets the location for time.Time values but does not change [time_zone setting](https://docs.singlestore.com/db/v9.1/user-and-cluster-administration/maintain-your-cluster/setting-the-time-zone/setting-the-time-zone-in-singlestore/).
 
 Please keep in mind, that param values must be [url.QueryEscape](https://golang.org/pkg/net/url/#QueryEscape)'ed. Alternatively you can manually replace the `/` with `%2F`. For example `US/Pacific` would be `loc=US%2FPacific`.
 
@@ -341,7 +341,7 @@ Valid Values:   true, false
 Default:        false
 ```
 
-Allow multiple statements in one query. This can be used to bach multiple queries. Use [Rows.NextResultSet()](https://pkg.go.dev/database/sql#Rows.NextResultSet) to get result of the second and subsequent queries.
+Allow multiple statements in one query. This can be used to batch multiple queries. Use [Rows.NextResultSet()](https://pkg.go.dev/database/sql#Rows.NextResultSet) to get result of the second and subsequent queries.
 
 When `multiStatements` is used, `?` parameters must only be used in the first statement. [interpolateParams](#interpolateparams) can be used to avoid this limitation unless prepared statement is used explicitly.
 
@@ -568,9 +568,9 @@ See [context support in the database/sql package](https://golang.org/doc/go1.8#d
 
 ### Query Cancellation
 
-Starting from version **1.9.2-p1**, this driver implements improved query cancellation for SingleStore using the `KILL QUERY` command.
+Starting from version **1.9.2-p1**, this driver implements improved query cancellation for SingleStore using the `KILL QUERY` command. This feature must be enabled by setting [`ctxCancellationEnabled=true`](#ctxcancellationenabled) in the DSN.
 
-When a context is cancelled during query execution, the driver opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server before closing the original connection. This is done to make sure the server resources are freed immediately.
+When a context is cancelled during query execution and `ctxCancellationEnabled` is `true`, the driver opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server before closing the original connection. This is done to make sure the server resources are freed immediately.
 
 ### `LOAD DATA LOCAL INFILE` support
 For this feature you need direct access to the package. Therefore you must change the import path (no `_`):
@@ -586,9 +586,9 @@ See the [godoc of Go-SingleStore-Driver](https://godoc.org/github.com/memsql/go-
 
 
 ### `time.Time` support
-The default internal output type of MySQL `DATE` and `DATETIME` values is `[]byte` which allows you to scan the value into a `[]byte`, `string` or `sql.RawBytes` variable in your program.
+The default internal output type of `DATE` and `DATETIME` values is `[]byte` which allows you to scan the value into a `[]byte`, `string` or `sql.RawBytes` variable in your program.
 
-However, many want to scan MySQL `DATE` and `DATETIME` values into `time.Time` variables, which is the logical equivalent in Go to `DATE` and `DATETIME` in MySQL. You can do that by changing the internal output type from `[]byte` to `time.Time` with the DSN parameter `parseTime=true`. You can set the default [`time.Time` location](https://golang.org/pkg/time/#Location) with the `loc` DSN parameter.
+However, many want to scan `DATE` and `DATETIME` values into `time.Time` variables, which is the logical equivalent in Go to `DATE` and `DATETIME` in SQL. You can do that by changing the internal output type from `[]byte` to `time.Time` with the DSN parameter `parseTime=true`. You can set the default [`time.Time` location](https://golang.org/pkg/time/#Location) with the `loc` DSN parameter.
 
 **Caution:** As of Go 1.1, this makes `time.Time` the only variable type you can scan `DATE` and `DATETIME` values into. This breaks for example [`sql.RawBytes` support](https://github.com/go-sql-driver/mysql/wiki/Examples#rawbytes).
 
