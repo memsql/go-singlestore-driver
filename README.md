@@ -399,6 +399,7 @@ Valid Values:   true, false
 Default:        false
 ```
 
+**Warning**: this setting has no effect for SingleStore. It is designed for MySQL primary/replica failover scenarios (e.g. AWS Aurora) where a client may get connected to a read-only replica. SingleStore uses a different HA architecture and does not have read-only replicas in the MySQL sense.
 
 `rejectReadOnly=true` causes the driver to reject read-only connections. This
 is for a possible race condition during an automatic failover, where the mysql
@@ -428,6 +429,8 @@ Type:           string
 Valid Values:   <name>
 Default:        none
 ```
+
+**Warning**: this setting has no effect for SingleStore. It is used for RSA key exchange with MySQL 8.0+ authentication plugins (`caching_sha2_password`, `sha256_password`). SingleStore uses `mysql_native_password` by default and does not require server public key configuration.
 
 Server public keys can be registered with [`mysql.RegisterServerPubKey`](https://godoc.org/github.com/memsql/go-singlestore-driver#RegisterServerPubKey), which can then be used by the assigned name in the DSN.
 Public keys are used to transmit encrypted data, e.g. for authentication.
