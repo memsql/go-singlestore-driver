@@ -1,11 +1,12 @@
-# Go-MySQL-Driver
+# Go-SingleStore-Driver
 
-A MySQL-Driver for Go's [database/sql](https://golang.org/pkg/database/sql/) package
+A driver for Go's [database/sql](https://golang.org/pkg/database/sql/) package provided by SingleStore.
 
-![Go-MySQL-Driver logo](https://raw.github.com/wiki/go-sql-driver/mysql/gomysql_m.png "Golang Gopher holding the MySQL Dolphin")
+This driver is a fork of [Go-MySQL-Driver](https://github.com/go-sql-driver/mysql) with SingleStore-specific enhancements.
 
 ---------------------------------------
   * [Features](#features)
+  * [Changes from Upstream Go-MySQL-Driver](#changes-from-upstream-go-mysql-driver)
   * [Requirements](#requirements)
   * [Installation](#installation)
   * [Usage](#usage)
@@ -27,9 +28,9 @@ A MySQL-Driver for Go's [database/sql](https://golang.org/pkg/database/sql/) pac
 ---------------------------------------
 
 ## Features
-  * Lightweight and [fast](https://github.com/go-sql-driver/sql-benchmark "golang MySQL-Driver performance")
+  * Lightweight and fast
   * Native Go implementation. No C-bindings, just pure Go
-  * Connections over TCP/IPv4, TCP/IPv6, Unix domain sockets or [custom protocols](https://godoc.org/github.com/go-sql-driver/mysql#DialFunc)
+  * Connections over TCP/IPv4, TCP/IPv6, Unix domain sockets or [custom protocols](https://godoc.org/github.com/memsql/go-singlestore-driver#DialFunc)
   * Automatic handling of broken connections
   * Automatic Connection Pooling *(by database/sql package)*
   * Supports queries larger than 16MB
@@ -40,38 +41,49 @@ A MySQL-Driver for Go's [database/sql](https://golang.org/pkg/database/sql/) pac
   * Optional placeholder interpolation
   * Supports zlib compression.
 
+## Changes from Upstream Go-MySQL-Driver
+
+This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) with the following SingleStore-specific changes:
+
+### New Features
+
+* **Active Query Cancellation** (v1.9.2-p1): When a context is cancelled during query execution, if `ctxCancellationEnabled` is set to `true`, the driver now opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server, providing immediate resource cleanup. See [Query Cancellation](#query-cancellation) for details.
+
+* **`ctxCancellationEnabled` DSN Parameter** (v1.9.2-p2): A boolean flag to enable/disable the active query cancellation feature. It is set to `false` by default for backward compatibility, but is recommended to set this to `true` for SingleStore connections. Refer to [ctxCancellationEnabled](#ctxCancellationEnabled) for more information.
+
+* **`skipParseNumbers` DSN Parameter** (v1.8.1-p2): When set to `true`, tells the driver not to convert integers and floats to native Go data types, passing their string representation as returned by the server to `database/sql`. See [`skipParseNumbers`](#skipparsenumbers) for details.
+
+### Other Changes
+
+* **Client Name**: The `_client_name` connection attribute is set to `memsql/go-singlestore-driver` to distinguish from the upstream driver.
+
+* **SingleStore Compatibility Notes**: Some MySQL-specific parameters like `charset`, `collation`, `allowOldPasswords`, `rejectReadOnly`, and `serverPubKey` have no effect on SingleStore. These are documented in the [Parameters](#parameters) section.
+
 ## Requirements
 
 * Go 1.21 or higher. We aim to support the 3 latest versions of Go.
-* MySQL (5.7+) and MariaDB (10.5+) are supported.
-* [TiDB](https://github.com/pingcap/tidb) is supported by PingCAP.
-  * Do not ask questions about TiDB in our issue tracker or forum.
-  * [Document](https://docs.pingcap.com/tidb/v6.1/dev-guide-sample-application-golang)
-  * [Forum](https://ask.pingcap.com/)
-* go-mysql would work with Percona Server, Google CloudSQL or Sphinx (2.2.3+).
-  * Maintainers won't support them. Do not expect issues are investigated and resolved by maintainers.
-  * Investigate issues yourself and please send a pull request to fix it.
+* SingleStore 8.7 or higher.
 
 ---------------------------------------
 
 ## Installation
-Simple install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
+Install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
 ```bash
-go get -u github.com/go-sql-driver/mysql
+go get -u github.com/memsql/go-singlestore-driver
 ```
 Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
 ## Usage
-_Go MySQL Driver_ is an implementation of Go's `database/sql/driver` interface. You only need to import the driver and can use the full [`database/sql`](https://golang.org/pkg/database/sql/) API then.
+_Go SingleStore Driver_ is an implementation of Go's `database/sql/driver` interface. Once you import the driver, you can access the full [`database/sql`](https://golang.org/pkg/database/sql/) API.
 
-Use `mysql` as `driverName` and a valid [DSN](#dsn-data-source-name)  as `dataSourceName`:
+Use `mysql` as `driverName` and a valid [DSN](#dsn-data-source-name) as `dataSourceName`:
 
 ```go
 import (
 	"database/sql"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/memsql/go-singlestore-driver"
 )
 
 // ...
@@ -86,13 +98,11 @@ db.SetMaxOpenConns(10)
 db.SetMaxIdleConns(10)
 ```
 
-[Examples are available in our Wiki](https://github.com/go-sql-driver/mysql/wiki/Examples "Go-MySQL-Driver Examples").
-
 ### Important settings
 
-`db.SetConnMaxLifetime()` is required to ensure connections are closed by the driver safely before connection is closed by MySQL server, OS, or other middlewares. Since some middlewares close idle connections by 5 minutes, we recommend timeout shorter than 5 minutes. This setting helps load balancing and changing system variables too.
+`db.SetConnMaxLifetime()` is required to ensure connections are closed by the driver safely before connection is closed by SingleStore server, OS, or other middlewares. Since some middlewares close idle connections by 5 minutes, we recommend timeout shorter than 5 minutes. This setting helps load balancing and changing system variables too.
 
-`db.SetMaxOpenConns()` is highly recommended to limit the number of connection used by the application. There is no recommended limit number because it depends on application and MySQL server.
+`db.SetMaxOpenConns()` is highly recommended to limit the number of connection used by the application. There is no recommended limit number because it depends on application and database server.
 
 `db.SetMaxIdleConns()` is recommended to be set same to `db.SetMaxOpenConns()`. When it is smaller than `SetMaxOpenConns()`, connections can be opened and closed much more frequently than you expect. Idle connections can be closed by the `db.SetConnMaxLifetime()`. If you want to close idle connections more rapidly, you can use `db.SetConnMaxIdleTime()` since Go 1.15.
 
@@ -129,7 +139,7 @@ This has the same effect as an empty DSN string:
 /dbname%2Fwithslash
 ```
 
-Alternatively, [Config.FormatDSN](https://godoc.org/github.com/go-sql-driver/mysql#Config.FormatDSN) can be used to create a DSN string by filling a struct.
+Alternatively, [Config.FormatDSN](https://godoc.org/github.com/memsql/go-singlestore-driver#Config.FormatDSN) can be used to create a DSN string by filling a struct.
 
 #### Password
 Passwords can consist of any character. Escaping is **not** necessary.
@@ -144,7 +154,7 @@ If `port` is omitted, the default port will be used.
 If `host` is a literal IPv6 address, it must be enclosed in square brackets.
 The functions [net.JoinHostPort](https://golang.org/pkg/net/#JoinHostPort) and [net.SplitHostPort](https://golang.org/pkg/net/#SplitHostPort) manipulate addresses in this form.
 
-For Unix domain sockets the address is the absolute path to the MySQL-Server-socket, e.g. `/var/run/mysqld/mysqld.sock` or `/tmp/mysql.sock`.
+For Unix domain sockets the address is the absolute path to the server socket, e.g. `/var/run/memsqld/memsqld.sock` or `/tmp/memsqld.sock`.
 
 #### Parameters
 *Parameters are case-sensitive!*
@@ -199,7 +209,8 @@ Type:           bool
 Valid Values:   true, false
 Default:        false
 ```
-`allowOldPasswords=true` allows the usage of the insecure old password method. This should be avoided, but is necessary in some cases. See also [the old_passwords wiki page](https://github.com/go-sql-driver/mysql/wiki/old_passwords).
+**Warning**: this setting has no effect for SingleStore.
+`allowOldPasswords=true` allows the usage of the insecure old password method. In SingleStore, this has no effect and exists only for compatibility.
 
 ##### `charset`
 
@@ -209,7 +220,8 @@ Valid Values:   <name>
 Default:        none
 ```
 
-Sets the charset used for client-server interaction (`"SET NAMES <value>"`). If multiple charsets are set (separated by a comma), the following charset is used if setting the charset fails. This enables for example support for `utf8mb4` ([introduced in MySQL 5.5.3](http://dev.mysql.com/doc/refman/5.5/en/charset-unicode-utf8mb4.html)) with fallback to `utf8` for older servers (`charset=utf8mb4,utf8`).
+**Warning**: this setting has no effect for SingleStore.
+Sets the charset used for client-server interaction (`"SET NAMES <value>"`). In SingleStore, this has no effect and exists only for compatibility.
 
 See also [Unicode Support](#unicode-support).
 
@@ -231,7 +243,7 @@ Type:           string
 Valid Values:   <name>
 Default:        utf8mb4_general_ci
 ```
-
+**Warning**: this setting has no effect for SingleStore.
 Sets the collation used for client-server interaction on connection. In contrast to `charset`, `collation` does not issue additional queries. If the specified collation is unavailable on the target server, the connection will fail.
 
 A list of valid charsets for a server is retrievable with `SHOW COLLATION`.
@@ -300,7 +312,7 @@ Default:        UTC
 
 Sets the location for time.Time values (when using `parseTime=true`). *"Local"* sets the system's location. See [time.LoadLocation](https://golang.org/pkg/time/#LoadLocation) for details.
 
-Note that this sets the location for time.Time values but does not change MySQL's [time_zone setting](https://dev.mysql.com/doc/refman/5.5/en/time-zone-support.html). For that see the [time_zone system variable](#system-variables), which can also be set as a DSN parameter.
+Note that this sets the location for time.Time values but does not change [time_zone setting](https://docs.singlestore.com/db/v9.1/user-and-cluster-administration/maintain-your-cluster/setting-the-time-zone/setting-the-time-zone-in-singlestore/).
 
 Please keep in mind, that param values must be [url.QueryEscape](https://golang.org/pkg/net/url/#QueryEscape)'ed. Alternatively you can manually replace the `/` with `%2F`. For example `US/Pacific` would be `loc=US%2FPacific`.
 
@@ -329,7 +341,7 @@ Valid Values:   true, false
 Default:        false
 ```
 
-Allow multiple statements in one query. This can be used to bach multiple queries. Use [Rows.NextResultSet()](https://pkg.go.dev/database/sql#Rows.NextResultSet) to get result of the second and subsequent queries.
+Allow multiple statements in one query. This can be used to batch multiple queries. Use [Rows.NextResultSet()](https://pkg.go.dev/database/sql#Rows.NextResultSet) to get result of the second and subsequent queries.
 
 When `multiStatements` is used, `?` parameters must only be used in the first statement. [interpolateParams](#interpolateparams) can be used to avoid this limitation unless prepared statement is used explicitly.
 
@@ -368,8 +380,7 @@ Valid Values:   true, false
 Default:        false
 ```
 
-`skipParseNumbers=true` tells the driver not to convert integers and floats to the native go data types, and pass their
-string representation as returned by the server to `database/sql`
+**SingleStore-specific parameter.** `skipParseNumbers=true` tells the driver not to convert integers and floats to the native Go data types, and pass their string representation as returned by the server to `database/sql`. This can be useful when you need to preserve the exact numeric representation from the server.
 
 ##### `readTimeout`
 
@@ -388,6 +399,7 @@ Valid Values:   true, false
 Default:        false
 ```
 
+**Warning**: this setting has no effect for SingleStore. It is designed for MySQL primary/replica failover scenarios (e.g. AWS Aurora) where a client may get connected to a read-only replica. SingleStore uses a different HA architecture and does not have read-only replicas in the MySQL sense.
 
 `rejectReadOnly=true` causes the driver to reject read-only connections. This
 is for a possible race condition during an automatic failover, where the mysql
@@ -418,7 +430,9 @@ Valid Values:   <name>
 Default:        none
 ```
 
-Server public keys can be registered with [`mysql.RegisterServerPubKey`](https://godoc.org/github.com/go-sql-driver/mysql#RegisterServerPubKey), which can then be used by the assigned name in the DSN.
+**Warning**: this setting has no effect for SingleStore. It is used for RSA key exchange with MySQL 8.0+ authentication plugins (`caching_sha2_password`, `sha256_password`). SingleStore uses `mysql_native_password` by default and does not require server public key configuration.
+
+Server public keys can be registered with [`mysql.RegisterServerPubKey`](https://godoc.org/github.com/memsql/go-singlestore-driver#RegisterServerPubKey), which can then be used by the assigned name in the DSN.
 Public keys are used to transmit encrypted data, e.g. for authentication.
 If the server's public key is known, it should be set manually to avoid expensive and potentially insecure transmissions of the public key from the server to the client each time it is required.
 
@@ -441,7 +455,7 @@ Valid Values:   true, false, skip-verify, preferred, <name>
 Default:        false
 ```
 
-`tls=true` enables TLS / SSL encrypted connection to the server. Use `skip-verify` if you want to use a self-signed or invalid certificate (server side) or use `preferred` to use TLS only when advertised by the server. This is similar to `skip-verify`, but additionally allows a fallback to a connection which is not encrypted. Neither `skip-verify` nor `preferred` add any reliable security. You can use a custom TLS config after registering it with [`mysql.RegisterTLSConfig`](https://godoc.org/github.com/go-sql-driver/mysql#RegisterTLSConfig).
+`tls=true` enables TLS / SSL encrypted connection to the server. Use `skip-verify` if you want to use a self-signed or invalid certificate (server side) or use `preferred` to use TLS only when advertised by the server. This is similar to `skip-verify`, but additionally allows a fallback to a connection which is not encrypted. Neither `skip-verify` nor `preferred` add any reliable security. You can use a custom TLS config after registering it with [`mysql.RegisterTLSConfig`](https://godoc.org/github.com/memsql/go-singlestore-driver#RegisterTLSConfig).
 
 
 ##### `writeTimeout`
@@ -463,6 +477,16 @@ Default:        none
 
 [Connection attributes](https://dev.mysql.com/doc/refman/8.0/en/performance-schema-connection-attribute-tables.html) are key-value pairs that application programs can pass to the server at connect time.
 
+##### `ctxCancellationEnabled`
+
+```
+Type:           bool
+Valid Values:   true, false
+Default:        false
+```
+
+**SingleStore-specific parameter.** When `ctxCancellationEnabled=true`, the driver will actively terminate running queries on the server when a context is cancelled, using the `KILL QUERY` command. This is recommended for SingleStore connections to ensure server resources are freed immediately upon cancellation. See [Query Cancellation](#query-cancellation) for more details.
+
 ##### System Variables
 
 Any other parameters are interpreted as system variables:
@@ -478,7 +502,6 @@ Rules:
 Examples:
   * `autocommit=1`: `SET autocommit=1`
   * [`time_zone=%27Europe%2FParis%27`](https://dev.mysql.com/doc/refman/5.5/en/time-zone-support.html): `SET time_zone='Europe/Paris'`
-  * [`transaction_isolation=%27REPEATABLE-READ%27`](https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_transaction_isolation): `SET transaction_isolation='REPEATABLE-READ'`
 
 
 #### Examples
@@ -487,7 +510,7 @@ user@unix(/path/to/socket)/dbname
 ```
 
 ```
-root:pw@unix(/tmp/mysql.sock)/myDatabase?loc=Local
+root:pw@unix(/tmp/memsql.sock)/myDatabase?loc=Local
 ```
 
 ```
@@ -516,7 +539,7 @@ user:password@unix(/cloudsql/project-id:region-name:instance-name)/dbname
 
 TCP using default port (3306) on localhost:
 ```
-user:password@tcp/dbname?charset=utf8mb4,utf8&sys_var=esc%40ped
+user:password@tcp/dbname?sys_var=esc%40ped
 ```
 
 Use the default protocol (tcp) and host (localhost:3306):
@@ -545,54 +568,41 @@ See [context support in the database/sql package](https://golang.org/doc/go1.8#d
 
 ### Query Cancellation
 
-Starting from version **1.9.2-p1**, this driver implements improved query cancellation for SingleStore using the `KILL QUERY` command.
+Starting from version **1.9.2-p1**, this driver implements improved query cancellation for SingleStore using the `KILL QUERY` command. This feature must be enabled by setting [`ctxCancellationEnabled=true`](#ctxcancellationenabled) in the DSN.
 
-When a context is cancelled during query execution, the driver opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server before closing the original connection. This is done to make sure the server resources are freed immediately.
+When a context is cancelled during query execution and `ctxCancellationEnabled` is `true`, the driver opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server before closing the original connection. This is done to make sure the server resources are freed immediately.
 
 ### `LOAD DATA LOCAL INFILE` support
 For this feature you need direct access to the package. Therefore you must change the import path (no `_`):
 ```go
-import "github.com/go-sql-driver/mysql"
+import "github.com/memsql/go-singlestore-driver"
 ```
 
 Files must be explicitly allowed by registering them with `mysql.RegisterLocalFile(filepath)` (recommended) or the allowlist check must be deactivated by using the DSN parameter `allowAllFiles=true` ([*Might be insecure!*](https://dev.mysql.com/doc/refman/8.0/en/load-data.html#load-data-local)).
 
 To use a `io.Reader` a handler function must be registered with `mysql.RegisterReaderHandler(name, handler)` which returns a `io.Reader` or `io.ReadCloser`. The Reader is available with the filepath `Reader::<name>` then. Choose different names for different handlers and `DeregisterReaderHandler` when you don't need it anymore.
 
-See the [godoc of Go-MySQL-Driver](https://godoc.org/github.com/go-sql-driver/mysql "golang mysql driver documentation") for details.
+See the [godoc of Go-SingleStore-Driver](https://godoc.org/github.com/memsql/go-singlestore-driver "golang singlestore driver documentation") for details.
 
 
 ### `time.Time` support
-The default internal output type of MySQL `DATE` and `DATETIME` values is `[]byte` which allows you to scan the value into a `[]byte`, `string` or `sql.RawBytes` variable in your program.
+The default internal output type of `DATE` and `DATETIME` values is `[]byte` which allows you to scan the value into a `[]byte`, `string` or `sql.RawBytes` variable in your program.
 
-However, many want to scan MySQL `DATE` and `DATETIME` values into `time.Time` variables, which is the logical equivalent in Go to `DATE` and `DATETIME` in MySQL. You can do that by changing the internal output type from `[]byte` to `time.Time` with the DSN parameter `parseTime=true`. You can set the default [`time.Time` location](https://golang.org/pkg/time/#Location) with the `loc` DSN parameter.
+However, many programs want to scan `DATE` and `DATETIME` values into `time.Time` variables, which is the logical equivalent in Go to `DATE` and `DATETIME` in SingleStore. You can do that by changing the internal output type from `[]byte` to `time.Time` with the DSN parameter `parseTime=true`. You can set the default [`time.Time` location](https://golang.org/pkg/time/#Location) with the `loc` DSN parameter.
 
 **Caution:** As of Go 1.1, this makes `time.Time` the only variable type you can scan `DATE` and `DATETIME` values into. This breaks for example [`sql.RawBytes` support](https://github.com/go-sql-driver/mysql/wiki/Examples#rawbytes).
 
 
 ### Unicode support
-Since version 1.5 Go-MySQL-Driver automatically uses the collation ` utf8mb4_general_ci` by default.
-
-Other charsets / collations can be set using the [`charset`](#charset) or [`collation`](#collation) DSN parameter.
-
-- When only the `charset` is specified, the `SET NAMES <charset>` query is sent and the server's default collation is used.
-- When both the `charset` and `collation` are specified, the `SET NAMES <charset> COLLATE <collation>` query is sent.
-- When only the `collation` is specified, the collation is specified in the protocol handshake and the `SET NAMES` query is not sent. This can save one roundtrip, but note that the server may ignore the specified collation silently and use the server's default charset/collation instead.
-
-See http://dev.mysql.com/doc/refman/8.0/en/charset-unicode.html for more details on MySQL's Unicode support.
+Go-SingleStore-Driver automatically uses the collation `utf8mb4_general_ci` by default. `charset` and `collation` parameter are kept only for mysql compatibility and have no effect on SingleStore.
 
 ## Testing / Development
-To run the driver tests you may need to adjust the configuration. See the [Testing Wiki-Page](https://github.com/go-sql-driver/mysql/wiki/Testing "Testing") for details.
-
-Go-MySQL-Driver is not feature-complete yet. Your help is very appreciated.
-If you want to contribute, you can work on an [open issue](https://github.com/go-sql-driver/mysql/issues?state=open) or review a [pull request](https://github.com/go-sql-driver/mysql/pulls).
-
-See the [Contribution Guidelines](https://github.com/go-sql-driver/mysql/blob/master/.github/CONTRIBUTING.md) for details.
+To run the driver tests you may need to adjust the configuration. See the test workflow `.github/workflows/test.yml` to check what environment variables are needed and what commands are used to run the tests.
 
 ---------------------------------------
 
 ## License
-Go-MySQL-Driver is licensed under the [Mozilla Public License Version 2.0](https://raw.github.com/go-sql-driver/mysql/master/LICENSE)
+Go-SingleStore-Driver is licensed under the [Mozilla Public License Version 2.0](https://raw.github.com/memsql/go-singlestore-driver/master/LICENSE)
 
 Mozilla summarizes the license scope as follows:
 > MPL: The copyleft applies to any files containing MPLed code.
@@ -605,6 +615,4 @@ That means:
 
 Please read the [MPL 2.0 FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/) if you have further questions regarding the license.
 
-You can read the full terms here: [LICENSE](https://raw.github.com/go-sql-driver/mysql/master/LICENSE).
-
-![Go Gopher and MySQL Dolphin](https://raw.github.com/wiki/go-sql-driver/mysql/go-mysql-driver_m.jpg "Golang Gopher transporting the MySQL Dolphin in a wheelbarrow")
+You can read the full terms here: [LICENSE](https://raw.github.com/memsql/go-singlestore-driver/master/LICENSE).
