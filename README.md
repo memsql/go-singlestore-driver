@@ -1,6 +1,6 @@
 # Go-SingleStore-Driver
 
-A SingleStore-Driver for Go's [database/sql](https://golang.org/pkg/database/sql/) package.
+A driver for Go's [database/sql](https://golang.org/pkg/database/sql/) package provided by SingleStore.
 
 This driver is a fork of [Go-MySQL-Driver](https://github.com/go-sql-driver/mysql) with SingleStore-specific enhancements.
 
@@ -49,7 +49,7 @@ This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/
 
 * **Active Query Cancellation** (v1.9.2-p1): When a context is cancelled during query execution, if `ctxCancellationEnabled` is set to `true`, the driver now opens a new connection and executes `KILL QUERY <connection_id> <aggregator_id>` to terminate the running query on the server, providing immediate resource cleanup. See [Query Cancellation](#query-cancellation) for details.
 
-* **`ctxCancellationEnabled` DSN Parameter** (v1.9.2-p2): A boolean flag to enable/disable the active query cancellation feature. It is set to `false` by default for backward compatibility, but is recommended to set this to `true` for SingleStore connections.
+* **`ctxCancellationEnabled` DSN Parameter** (v1.9.2-p2): A boolean flag to enable/disable the active query cancellation feature. It is set to `false` by default for backward compatibility, but is recommended to set this to `true` for SingleStore connections. Refer to [ctxCancellationEnabled](#ctxCancellationEnabled) for more information.
 
 * **`skipParseNumbers` DSN Parameter** (v1.8.1-p2): When set to `true`, tells the driver not to convert integers and floats to native Go data types, passing their string representation as returned by the server to `database/sql`. See [`skipParseNumbers`](#skipparsenumbers) for details.
 
@@ -67,14 +67,14 @@ This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/
 ---------------------------------------
 
 ## Installation
-Simply install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
+Install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
 ```bash
 go get -u github.com/memsql/go-singlestore-driver
 ```
 Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
 ## Usage
-_Go SingleStore Driver_ is an implementation of Go's `database/sql/driver` interface. You only need to import the driver and can use the full [`database/sql`](https://golang.org/pkg/database/sql/) API then.
+_Go SingleStore Driver_ is an implementation of Go's `database/sql/driver` interface. Once you import the driver, you can access the full [`database/sql`](https://golang.org/pkg/database/sql/) API.
 
 Use `mysql` as `driverName` and a valid [DSN](#dsn-data-source-name) as `dataSourceName`:
 
@@ -210,7 +210,7 @@ Valid Values:   true, false
 Default:        false
 ```
 **Warning**: this setting has no effect for SingleStore.
-`allowOldPasswords=true` allows the usage of the insecure old password method. This should be avoided, but is necessary in some cases. See also [the old_passwords wiki page](https://github.com/go-sql-driver/mysql/wiki/old_passwords).
+`allowOldPasswords=true` allows the usage of the insecure old password method. In SingleStore, this has no effect and exists only for compatibility.
 
 ##### `charset`
 
@@ -221,7 +221,7 @@ Default:        none
 ```
 
 **Warning**: this setting has no effect for SingleStore.
-Sets the charset used for client-server interaction (`"SET NAMES <value>"`). If multiple charsets are set (separated by a comma), the following charset is used if setting the charset fails. This enables for example support for `utf8mb4` ([introduced in MySQL 5.5.3](http://dev.mysql.com/doc/refman/5.5/en/charset-unicode-utf8mb4.html)) with fallback to `utf8` for older servers (`charset=utf8mb4,utf8`).
+Sets the charset used for client-server interaction (`"SET NAMES <value>"`). In SingleStore, this has no effect and exists only for compatibility.
 
 See also [Unicode Support](#unicode-support).
 
@@ -588,7 +588,7 @@ See the [godoc of Go-SingleStore-Driver](https://godoc.org/github.com/memsql/go-
 ### `time.Time` support
 The default internal output type of `DATE` and `DATETIME` values is `[]byte` which allows you to scan the value into a `[]byte`, `string` or `sql.RawBytes` variable in your program.
 
-However, many want to scan `DATE` and `DATETIME` values into `time.Time` variables, which is the logical equivalent in Go to `DATE` and `DATETIME` in SQL. You can do that by changing the internal output type from `[]byte` to `time.Time` with the DSN parameter `parseTime=true`. You can set the default [`time.Time` location](https://golang.org/pkg/time/#Location) with the `loc` DSN parameter.
+However, many programs want to scan `DATE` and `DATETIME` values into `time.Time` variables, which is the logical equivalent in Go to `DATE` and `DATETIME` in SingleStore. You can do that by changing the internal output type from `[]byte` to `time.Time` with the DSN parameter `parseTime=true`. You can set the default [`time.Time` location](https://golang.org/pkg/time/#Location) with the `loc` DSN parameter.
 
 **Caution:** As of Go 1.1, this makes `time.Time` the only variable type you can scan `DATE` and `DATETIME` values into. This breaks for example [`sql.RawBytes` support](https://github.com/go-sql-driver/mysql/wiki/Examples#rawbytes).
 
