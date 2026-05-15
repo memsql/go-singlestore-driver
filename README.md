@@ -24,13 +24,14 @@ This driver is a fork of [Go-MySQL-Driver](https://github.com/go-sql-driver/mysq
     * [Unicode support](#unicode-support)
   * [Testing / Development](#testing--development)
   * [License](#license)
+  * [Migration](MIGRATION.md)
 
 ---------------------------------------
 
 ## Features
   * Lightweight and fast
   * Native Go implementation. No C-bindings, just pure Go
-  * Connections over TCP/IPv4, TCP/IPv6, Unix domain sockets or [custom protocols](https://godoc.org/github.com/memsql/go-singlestore-driver#DialFunc)
+  * Connections over TCP/IPv4, TCP/IPv6, Unix domain sockets or [custom protocols](https://godoc.org/github.com/singlestore-labs/go-singlestore-driver#DialFunc)
   * Automatic handling of broken connections
   * Automatic Connection Pooling *(by database/sql package)*
   * Supports queries larger than 16MB
@@ -69,26 +70,26 @@ This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/
 ## Installation
 Install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
 ```bash
-go get -u github.com/memsql/go-singlestore-driver
+go get -u github.com/singlestore-labs/go-singlestore-driver
 ```
 Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
 ## Usage
 _Go SingleStore Driver_ is an implementation of Go's `database/sql/driver` interface. Once you import the driver, you can access the full [`database/sql`](https://golang.org/pkg/database/sql/) API.
 
-Use `mysql` as `driverName` and a valid [DSN](#dsn-data-source-name) as `dataSourceName`:
+Use `singlestore` as `driverName` and a valid [DSN](#dsn-data-source-name) as `dataSourceName`:
 
 ```go
 import (
 	"database/sql"
 	"time"
 
-	_ "github.com/memsql/go-singlestore-driver"
+	_ "github.com/singlestore-labs/go-singlestore-driver"
 )
 
 // ...
 
-db, err := sql.Open("mysql", "user:password@/dbname")
+db, err := sql.Open("singlestore", "user:password@/dbname")
 if err != nil {
 	panic(err)
 }
@@ -139,7 +140,7 @@ This has the same effect as an empty DSN string:
 /dbname%2Fwithslash
 ```
 
-Alternatively, [Config.FormatDSN](https://godoc.org/github.com/memsql/go-singlestore-driver#Config.FormatDSN) can be used to create a DSN string by filling a struct.
+Alternatively, [Config.FormatDSN](https://godoc.org/github.com/singlestore-labs/go-singlestore-driver#Config.FormatDSN) can be used to create a DSN string by filling a struct.
 
 #### Password
 Passwords can consist of any character. Escaping is **not** necessary.
@@ -345,19 +346,30 @@ Allow multiple statements in one query. This can be used to batch multiple queri
 
 When `multiStatements` is used, `?` parameters must only be used in the first statement. [interpolateParams](#interpolateparams) can be used to avoid this limitation unless prepared statement is used explicitly.
 
-It's possible to access the last inserted ID and number of affected rows for multiple statements by using `sql.Conn.Raw()` and the `mysql.Result`. For example:
+It's possible to access the last inserted ID and number of affected rows for multiple statements by using `sql.Conn.Raw()` and the `singlestore.Result` interface. For example:
 
 ```go
+import (
+	"database/sql/driver"
+	"log"
+
+	"github.com/singlestore-labs/go-singlestore-driver"
+)
+
 conn, _ := db.Conn(ctx)
 conn.Raw(func(conn any) error {
-  ex := conn.(driver.Execer)
-  res, err := ex.Exec(`
+	ex := conn.(driver.Execer)
+	res, err := ex.Exec(`
   UPDATE point SET x = 1 WHERE y = 2;
   UPDATE point SET x = 2 WHERE y = 3;
   `, nil)
-  // Both slices have 2 elements.
-  log.Print(res.(mysql.Result).AllRowsAffected())
-  log.Print(res.(mysql.Result).AllLastInsertIds())
+	if err != nil {
+		return err
+	}
+	// Both slices have 2 elements.
+	log.Print(res.(singlestore.Result).AllRowsAffected())
+	log.Print(res.(singlestore.Result).AllLastInsertIds())
+	return nil
 })
 ```
 
@@ -432,7 +444,7 @@ Default:        none
 
 **Warning**: this setting has no effect for SingleStore. It is used for RSA key exchange with MySQL 8.0+ authentication plugins (`caching_sha2_password`, `sha256_password`). SingleStore uses `mysql_native_password` by default and does not require server public key configuration.
 
-Server public keys can be registered with [`mysql.RegisterServerPubKey`](https://godoc.org/github.com/memsql/go-singlestore-driver#RegisterServerPubKey), which can then be used by the assigned name in the DSN.
+Server public keys can be registered with [`singlestore.RegisterServerPubKey`](https://godoc.org/github.com/singlestore-labs/go-singlestore-driver#RegisterServerPubKey), which can then be used by the assigned name in the DSN.
 Public keys are used to transmit encrypted data, e.g. for authentication.
 If the server's public key is known, it should be set manually to avoid expensive and potentially insecure transmissions of the public key from the server to the client each time it is required.
 
@@ -455,7 +467,7 @@ Valid Values:   true, false, skip-verify, preferred, <name>
 Default:        false
 ```
 
-`tls=true` enables TLS / SSL encrypted connection to the server. Use `skip-verify` if you want to use a self-signed or invalid certificate (server side) or use `preferred` to use TLS only when advertised by the server. This is similar to `skip-verify`, but additionally allows a fallback to a connection which is not encrypted. Neither `skip-verify` nor `preferred` add any reliable security. You can use a custom TLS config after registering it with [`mysql.RegisterTLSConfig`](https://godoc.org/github.com/memsql/go-singlestore-driver#RegisterTLSConfig).
+`tls=true` enables TLS / SSL encrypted connection to the server. Use `skip-verify` if you want to use a self-signed or invalid certificate (server side) or use `preferred` to use TLS only when advertised by the server. This is similar to `skip-verify`, but additionally allows a fallback to a connection which is not encrypted. Neither `skip-verify` nor `preferred` add any reliable security. You can use a custom TLS config after registering it with [`singlestore.RegisterTLSConfig`](https://godoc.org/github.com/singlestore-labs/go-singlestore-driver#RegisterTLSConfig).
 
 
 ##### `writeTimeout`
@@ -575,14 +587,14 @@ When a context is cancelled during query execution and `ctxCancellationEnabled` 
 ### `LOAD DATA LOCAL INFILE` support
 For this feature you need direct access to the package. Therefore you must change the import path (no `_`):
 ```go
-import "github.com/memsql/go-singlestore-driver"
+import "github.com/singlestore-labs/go-singlestore-driver"
 ```
 
-Files must be explicitly allowed by registering them with `mysql.RegisterLocalFile(filepath)` (recommended) or the allowlist check must be deactivated by using the DSN parameter `allowAllFiles=true` ([*Might be insecure!*](https://dev.mysql.com/doc/refman/8.0/en/load-data.html#load-data-local)).
+Files must be explicitly allowed by registering them with `singlestore.RegisterLocalFile(filepath)` (recommended) or the allowlist check must be deactivated by using the DSN parameter `allowAllFiles=true` ([*Might be insecure!*](https://dev.mysql.com/doc/refman/8.0/en/load-data.html#load-data-local)).
 
-To use a `io.Reader` a handler function must be registered with `mysql.RegisterReaderHandler(name, handler)` which returns a `io.Reader` or `io.ReadCloser`. The Reader is available with the filepath `Reader::<name>` then. Choose different names for different handlers and `DeregisterReaderHandler` when you don't need it anymore.
+To use a `io.Reader` a handler function must be registered with `singlestore.RegisterReaderHandler(name, handler)` which returns a `io.Reader` or `io.ReadCloser`. The Reader is available with the filepath `Reader::<name>` then. Choose different names for different handlers and `singlestore.DeregisterReaderHandler` when you don't need it anymore.
 
-See the [godoc of Go-SingleStore-Driver](https://godoc.org/github.com/memsql/go-singlestore-driver "golang singlestore driver documentation") for details.
+See the [godoc of Go-SingleStore-Driver](https://godoc.org/github.com/singlestore-labs/go-singlestore-driver "golang singlestore driver documentation") for details.
 
 
 ### `time.Time` support
@@ -602,7 +614,7 @@ To run the driver tests you may need to adjust the configuration. See the test w
 ---------------------------------------
 
 ## License
-Go-SingleStore-Driver is licensed under the [Mozilla Public License Version 2.0](https://raw.github.com/memsql/go-singlestore-driver/master/LICENSE)
+Go-SingleStore-Driver is licensed under the [Mozilla Public License Version 2.0](https://raw.github.com/singlestore-labs/go-singlestore-driver/master/LICENSE)
 
 Mozilla summarizes the license scope as follows:
 > MPL: The copyleft applies to any files containing MPLed code.
@@ -615,4 +627,4 @@ That means:
 
 Please read the [MPL 2.0 FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/) if you have further questions regarding the license.
 
-You can read the full terms here: [LICENSE](https://raw.github.com/memsql/go-singlestore-driver/master/LICENSE).
+You can read the full terms here: [LICENSE](https://raw.github.com/singlestore-labs/go-singlestore-driver/master/LICENSE).

@@ -6,7 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package mysql
+package singlestore
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ var (
 // the DSN parameter 'allowAllFiles=true'
 //
 //	filePath := "/home/gopher/data.csv"
-//	mysql.RegisterLocalFile(filePath)
+//	singlestore.RegisterLocalFile(filePath)
 //	err := db.Exec("LOAD DATA LOCAL INFILE '" + filePath + "' INTO TABLE foo")
 //	if err != nil {
 //	...
@@ -57,7 +57,7 @@ func DeregisterLocalFile(filePath string) {
 // If the handler returns a io.ReadCloser Close() is called when the
 // request is finished.
 //
-//	mysql.RegisterReaderHandler("data", func() io.Reader {
+//	singlestore.RegisterReaderHandler("data", func() io.Reader {
 //		var csvReader io.Reader // Some Reader that returns CSV data
 //		... // Open Reader here
 //		return csvReader

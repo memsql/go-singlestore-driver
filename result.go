@@ -6,7 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package mysql
+package singlestore
 
 import "database/sql/driver"
 
@@ -16,7 +16,7 @@ import "database/sql/driver"
 // downcasting the returned result:
 //
 //	res, err := rawConn.Exec(...)
-//	res.(mysql.Result).AllRowsAffected()
+//	res.(singlestore.Result).AllRowsAffected()
 type Result interface {
 	driver.Result
 	// AllRowsAffected returns a slice containing the affected rows for each

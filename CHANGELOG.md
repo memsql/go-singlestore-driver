@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- The driver registered with `database/sql` now uses the name `singlestore` instead of `mysql`. Update `sql.Open("mysql", dsn)` to `sql.Open("singlestore", dsn)`. This avoids init-time conflicts when both this module and `github.com/go-sql-driver/mysql` are imported. See [MIGRATION.md](MIGRATION.md).
+- Driver-emitted error messages that used the `mysql:` prefix now use `singlestore:` (for example unsupported isolation level and named parameters).
+
 ## Version 1.9.3-p0
 
 - disable fetch connection info for kill connection (#10)
