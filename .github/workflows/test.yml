@@ -45,7 +45,7 @@ jobs:
           S2_VERSIONS: ${{ needs.fetch-s2-versions.outputs.versions }}
         run: |
           import itertools, json, os
-          go_versions = ["1.21", "1.22", "1.23", "1.24"]
+          go_versions = ["1.24", "1.25", "1.26"]
           s2_versions = json.loads(os.environ['S2_VERSIONS'])
           if len(go_versions) <= len(s2_versions):
             pairs = list(zip(itertools.cycle(go_versions), s2_versions))

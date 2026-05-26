@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// package singlestore provides a MySQL driver for Go's database/sql package.
+// package singlestore provides a SingleStore driver for Go's database/sql package.
 //
 // The driver should be used via the database/sql package:
 //
@@ -13,7 +13,7 @@
 //
 //	db, err := sql.Open("singlestore", "user:password@/dbname")
 //
-// See https://github.com/go-sql-driver/mysql#usage for details
+// See https://github.com/singlestore-labs/go-singlestore-driver#usage for details
 package singlestore
 
 import (
@@ -101,7 +101,7 @@ func init() {
 func NewConnector(cfg *Config) (driver.Connector, error) {
 	cfg = cfg.Clone()
 	// normalize the contents of cfg so calls to NewConnector have the same
-	// behavior as MySQLDriver.OpenConnector
+	// behavior as SingleStoreDriver.OpenConnector
 	if err := cfg.normalize(); err != nil {
 		return nil, err
 	}

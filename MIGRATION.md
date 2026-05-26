@@ -34,7 +34,7 @@ This driver registers with `database/sql` as **`singlestore`**, package name is 
    singlestore.NewConnector(cfg)
    // *singlestore.MySQLError, singlestore.Config, singlestore.Result, …
    ```
-   Identifiers are unchanged from upstream — only the prefix moves.
+   Most of the identifiers are unchanged from upstream — only the prefix moves. The notable exception is `MySQLDriver` -> `SingleStoreDriver`.
 
    **Package-name collision.** If your own code lives in a package named `singlestore` (common in repos that wrap this driver), the bare `singlestore.X` form is ambiguous. Use an import alias instead:
    ```go
@@ -90,7 +90,7 @@ git grep 'go-sql-driver/mysql' '*.go'  # SingleStore call sites should be gone
 git grep -E '\.(Open|MustOpen|Connect|MustConnect)\("mysql"' '*.go'
 git grep 'github\.com/memsql/go-singlestore-driver'  # old module name should be gone
 git grep -E 'mysql\.(BeforeConnect|Charset|DeregisterDialContext|DeregisterLocalFile|DeregisterReaderHandler|DeregisterServerPubKey|DeregisterTLSConfig|EnableCompression|NewConfig|NewConnector|ParseDSN|RegisterDial|RegisterDialContext|RegisterLocalFile|RegisterReaderHandler|RegisterServerPubKey|RegisterTLSConfig|SetLogger|TimeTruncate)([^[:alnum:]_]|$)' '*.go'  # old package prefix on functions should be gone
-git grep -E 'mysql\.(Config|DialContextFunc|DialFunc|Logger|MySQLError|NopLogger|NullTime|Option|Result|SingleStoreDriver)([^[:alnum:]_]|$)' '*.go'  # old package prefix on types should be gone
+git grep -E 'mysql\.(Config|DialContextFunc|DialFunc|Logger|MySQLError|NopLogger|NullTime|Option|Result|MySQLDriver)([^[:alnum:]_]|$)' '*.go'  # old package prefix on types should be gone
 git grep -E 'mysql\.(ErrBusyBuffer|ErrCleartextPassword|ErrInvalidConn|ErrMalformPkt|ErrNativePassword|ErrNoTLS|ErrOldPassword|ErrOldProtocol|ErrPktSync|ErrPktSyncMul|ErrPktTooLarge|ErrUnknownPlugin)([^[:alnum:]_]|$)' '*.go'  # old package prefix on exported errors should be gone
 ```
 
