@@ -32,7 +32,7 @@ This driver registers with `database/sql` as **`singlestore`**, package name is 
 
    singlestore.ParseDSN(dsn)
    singlestore.NewConnector(cfg)
-   // *singlestore.MySQLError, singlestore.Config, singlestore.Result, …
+   // *singlestore.MySQLError, singlestore.Config, singlestore.Result, ...
    ```
    Most of the identifiers are unchanged from upstream — only the prefix moves. The notable exception is `MySQLDriver` -> `SingleStoreDriver`.
 
@@ -70,13 +70,7 @@ For larger codebases, the package-prefix rename can be automated. `gofmt -r` is 
 gofmt -r 'mysql.ErrNoTLS -> singlestore.ErrNoTLS' -w .
 gofmt -r 'mysql.MySQLError -> singlestore.MySQLError' -w .
 gofmt -r 'mysql.ParseDSN(a) -> singlestore.ParseDSN(a)' -w .
-# …etc.
-```
-
-If you need a quick `sed` pass (e.g. for non-Go files like comments or docs), scope it tightly so you don't rewrite unrelated `mysql.` strings:
-
-```bash
-git ls-files '*.go' | xargs sed -i '' 's/\bmysql\.ErrNoTLS\b/singlestore.ErrNoTLS/g'
+# etc.
 ```
 
 After any rewrite, run `goimports -w .` (or `go build ./...`) to fix up imports.
@@ -103,7 +97,7 @@ git grep -nE '(driverName|driver)\s*[:=]\s*"mysql"' '*.go'  # constants/vars hol
 
 ### `go.sum` and indirect dependencies
 
-After migration you may still see `github.com/go-sql-driver/mysql` listed as an **indirect** dependency in `go.mod` / `go.sum` — for example, pulled in by `github.com/jmoiron/sqlx`'s test code or by another module you depend on.
+After migration you may still see `github.com/go-sql-driver/mysql` listed as an **indirect** dependency in `go.mod` / `go.sum` — for example, pulled in by `github.com/jmoiron/sqlx`'s test code or by another module you depend on. This is harmless: the indirect entry only records that some transitive dependency references the package, and because nothing in your application registers it as a `database/sql` driver, there is no init-time conflict with `singlestore`. Run `go mod tidy` after migration to drop any entries that are no longer needed; if `go-sql-driver/mysql` remains, you can leave it in place.
 
 ### Getting help
 
