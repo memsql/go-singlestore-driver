@@ -79,7 +79,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         if: matrix.go == '1.25'
         with:
-          version: v2.12.2
+          version: v2.8.0
 
       - name: Install MySQL client
         run: |
