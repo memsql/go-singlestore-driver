@@ -6,7 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package mysql
+package singlestore
 
 import (
 	"context"
@@ -241,7 +241,7 @@ func isFetchConnectionInfoDisabled(ctx context.Context) bool {
 }
 
 // Driver implements driver.Connector interface.
-// Driver returns &MySQLDriver{}.
+// Driver returns &SingleStoreDriver{}.
 func (c *connector) Driver() driver.Driver {
-	return &MySQLDriver{}
+	return &SingleStoreDriver{}
 }

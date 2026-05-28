@@ -6,7 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package mysql
+package singlestore
 
 import (
 	"crypto/tls"
@@ -49,11 +49,11 @@ var (
 //	    log.Fatal(err)
 //	}
 //	clientCert = append(clientCert, certs)
-//	mysql.RegisterTLSConfig("custom", &tls.Config{
+//	singlestore.RegisterTLSConfig("custom", &tls.Config{
 //	    RootCAs: rootCertPool,
 //	    Certificates: clientCert,
 //	})
-//	db, err := sql.Open("mysql", "user@tcp(localhost:3306)/test?tls=custom")
+//	db, err := sql.Open("singlestore", "user@tcp(localhost:3306)/test?tls=custom")
 func RegisterTLSConfig(key string, config *tls.Config) error {
 	if _, isBool := readBool(key); isBool || strings.ToLower(key) == "skip-verify" || strings.ToLower(key) == "preferred" {
 		return fmt.Errorf("key '%s' is reserved", key)
@@ -807,7 +807,7 @@ func namedValueToValue(named []driver.NamedValue) ([]driver.Value, error) {
 	for n, param := range named {
 		if len(param.Name) > 0 {
 			// TODO: support the use of Named Parameters #561
-			return nil, errors.New("mysql: driver does not support the use of Named Parameters")
+			return nil, errors.New("singlestore: driver does not support the use of Named Parameters")
 		}
 		dargs[n] = param.Value
 	}
@@ -825,6 +825,6 @@ func mapIsolationLevel(level driver.IsolationLevel) (string, error) {
 	case sql.LevelSerializable:
 		return "SERIALIZABLE", nil
 	default:
-		return "", fmt.Errorf("mysql: unsupported isolation level: %v", level)
+		return "", fmt.Errorf("singlestore: unsupported isolation level: %v", level)
 	}
 }

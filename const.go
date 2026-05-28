@@ -6,7 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package mysql
+package singlestore
 
 import "runtime"
 
@@ -22,7 +22,7 @@ const (
 	// Connection attributes
 	// See https://dev.mysql.com/doc/refman/8.0/en/performance-schema-connection-attribute-tables.html#performance-schema-connection-attributes-available
 	connAttrClientName      = "_client_name"
-	connAttrClientNameValue = "memsql/go-singlestore-driver"
+	connAttrClientNameValue = "singlestore-labs/go-singlestore-driver"
 	connAttrOS              = "_os"
 	connAttrOSValue         = runtime.GOOS
 	connAttrPlatform        = "_platform"

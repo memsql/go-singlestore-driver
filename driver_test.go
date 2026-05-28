@@ -6,7 +6,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package mysql
+package singlestore
 
 import (
 	"bytes"
@@ -35,7 +35,7 @@ import (
 )
 
 // This variable can be replaced with -ldflags like below:
-// go test "-ldflags=-X github.com/go-sql-driver/mysql.driverNameTest=custom"
+// go test "-ldflags=-X github.com/singlestore-labs/go-singlestore-driver.driverNameTest=custom"
 var driverNameTest string
 
 func init() {
@@ -225,7 +225,7 @@ func runTestsParallel(t *testing.T, dsn string, tests ...func(dbt *DBTest, table
 			t.Parallel()
 
 			tableName := newTableName(t)
-			db, err := sql.Open("mysql", dsn)
+			db, err := sql.Open("singlestore", dsn)
 			if err != nil {
 				t.Fatalf("error connecting: %s", err.Error())
 			}
@@ -244,7 +244,7 @@ func runTestsParallel(t *testing.T, dsn string, tests ...func(dbt *DBTest, table
 				t.Parallel()
 
 				tableName := newTableName(t)
-				db, err := sql.Open("mysql", dsn2)
+				db, err := sql.Open("singlestore", dsn2)
 				if err != nil {
 					t.Fatalf("error connecting: %s", err.Error())
 				}
@@ -1559,7 +1559,7 @@ func TestReuseClosedConnection(t *testing.T) {
 		t.Skipf("MySQL server not running on %s", netAddr)
 	}
 
-	md := &MySQLDriver{}
+	md := &SingleStoreDriver{}
 	conn, err := md.Open(dsn)
 	if err != nil {
 		t.Fatalf("error connecting: %s", err.Error())
@@ -3373,7 +3373,7 @@ func TestRawBytesAreNotModified(t *testing.T) {
 	})
 }
 
-var _ driver.DriverContext = &MySQLDriver{}
+var _ driver.DriverContext = &SingleStoreDriver{}
 
 type dialCtxKey struct{}
 
@@ -3611,7 +3611,7 @@ func TestErrorInMultiResult(t *testing.T) {
 	// https://github.com/go-sql-driver/mysql/issues/1361
 	var db *sql.DB
 	if _, err := ParseDSN(dsn); err != errInvalidDSNUnsafeCollation {
-		db, err = sql.Open("mysql", dsn)
+		db, err = sql.Open("singlestore", dsn)
 		if err != nil {
 			t.Fatalf("error connecting: %s", err.Error())
 		}
