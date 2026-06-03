@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v2.0.0 (2026-06-03)
+
 ### Breaking changes
 
 - The module path moved from `github.com/memsql/go-singlestore-driver` to `github.com/singlestore-labs/go-singlestore-driver`. Update import paths and `go.mod` accordingly. See [MIGRATION.md](MIGRATION.md).
@@ -12,7 +14,6 @@
 - Driver-emitted error messages that used the `mysql:` prefix now use `singlestore:` (for example unsupported isolation level and named parameters).
 - Minimum Go version is now 1.24.
 - Set `_client_name` connection attribute to `singlestore-labs/go-singlestore-driver`.
-
 
 
 ## v1.10.0 (2026-04-28)

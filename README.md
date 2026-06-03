@@ -56,7 +56,7 @@ This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/
 
 ### Other Changes
 
-* **Client Name**: The `_client_name` connection attribute is set to `memsql/go-singlestore-driver` to distinguish from the upstream driver.
+* **Client Name**: The `_client_name` connection attribute is set to `singlestore-labs/go-singlestore-driver` to distinguish from the upstream driver.
 
 * **SingleStore Compatibility Notes**: Some MySQL-specific parameters like `charset`, `collation`, `allowOldPasswords`, `rejectReadOnly`, and `serverPubKey` have no effect on SingleStore. These are documented in the [Parameters](#parameters) section.
 
