@@ -42,7 +42,7 @@ func encodeConnectionAttributes(cfg *Config) string {
 	}
 
 	// user-defined connection attributes
-	for _, connAttr := range strings.Split(cfg.ConnectionAttributes, ",") {
+	for connAttr := range strings.SplitSeq(cfg.ConnectionAttributes, ",") {
 		k, v, found := strings.Cut(connAttr, ":")
 		if !found {
 			continue
@@ -132,7 +132,7 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 	mc.buf = newBuffer()
 
 	// Reading Handshake Initialization Packet
-	authData, plugin, err := mc.readHandshakePacket()
+	authData, serverCapabilities, serverExtCapabilities, plugin, err := mc.readHandshakePacket()
 	if err != nil {
 		mc.cleanup()
 		return nil, err
@@ -154,6 +154,7 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 			return nil, err
 		}
 	}
+	mc.initCapabilities(serverCapabilities, serverExtCapabilities, mc.cfg)
 	if err = mc.writeHandshakeResponsePacket(authResp, plugin); err != nil {
 		mc.cleanup()
 		return nil, err
@@ -162,13 +163,14 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 	// Handle response to auth packet, switch methods if possible
 	if err = mc.handleAuthResult(authData, plugin); err != nil {
 		// Authentication failed and MySQL has already closed the connection
-		// (https://dev.mysql.com/doc/internals/en/authentication-fails.html).
+		// (https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase.html#sect_protocol_connection_phase_fast_path_fails).
 		// Do not send COM_QUIT, just cleanup and return the error.
 		mc.cleanup()
 		return nil, err
 	}
 
-	if mc.cfg.compress && mc.flags&clientCompress == clientCompress {
+	// compression is enabled after auth, not right after sending handshake response.
+	if mc.capabilities&clientCompress > 0 {
 		mc.compress = true
 		mc.compIO = newCompIO(mc)
 	}
@@ -181,7 +183,7 @@ func (c *connector) Connect(ctx context.Context) (driver.Conn, error) {
 			mc.Close()
 			return nil, err
 		}
-		n, err := strconv.Atoi(string(maxap))
+		n, err := strconv.Atoi(maxap)
 		if err != nil {
 			mc.Close()
 			return nil, fmt.Errorf("invalid max_allowed_packet value (%q): %w", maxap, err)

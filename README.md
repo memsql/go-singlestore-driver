@@ -62,8 +62,8 @@ This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/
 
 ## Requirements
 
-* Go 1.21 or higher. We aim to support the 3 latest versions of Go.
-* SingleStore 8.7 or higher.
+* Go 1.24 or higher. We aim to support the 3 latest versions of Go.
+* SingleStore 8.9 or higher.
 
 ---------------------------------------
 

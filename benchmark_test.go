@@ -92,7 +92,7 @@ func benchmarkQuery(b *testing.B, compr bool) {
 	defer wg.Wait()
 	b.StartTimer()
 
-	for i := 0; i < concurrencyLevel; i++ {
+	for range concurrencyLevel {
 		go func() {
 			for {
 				if atomic.AddInt64(&remain, -1) < 0 {
@@ -129,7 +129,16 @@ func BenchmarkExec(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i <  concurrencyLevel; i++ {
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if _, err := stmt.Exec(); err != nil {
+				b.Logf("stmt.Exec failed: %v", err)
+				b.Fail()
+			}
+		}
+	})
+
+	for range concurrencyLevel {
 		go func() {
 			for {
 				if atomic.AddInt64(&remain, -1) < 0 {
@@ -167,7 +176,7 @@ func BenchmarkRoundtripTxt(b *testing.B) {
 	b.ResetTimer()
 
 	var result string
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		length := min + i
 		if length > max {
 			length = max
@@ -202,7 +211,7 @@ func BenchmarkRoundtripBin(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	var result sql.RawBytes
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		length := min + i
 		if length > max {
 			length = max
@@ -248,8 +257,8 @@ func BenchmarkInterpolation(b *testing.B) {
 	q := "SELECT ?, ?, ?, ?, ?, ?"
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_, err := mc.interpolateParams(q, args)
 		if err != nil {
 			b.Fatal(err)
@@ -345,7 +354,7 @@ func BenchmarkQueryRawBytes(b *testing.B) {
 	for i := range blob {
 		blob[i] = 42
 	}
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		_, err := db.Exec("INSERT INTO bench_rawbytes VALUES (?, ?)", i, blob)
 		if err != nil {
 			b.Fatal(err)
@@ -400,11 +409,11 @@ func benchmark10kRows(b *testing.B, compress bool) {
 	}
 
 	args := make([]any, 200)
-	for i := 1; i < 200; i+=2 {
+	for i := 1; i < 200; i += 2 {
 		args[i] = sval
 	}
 	for i := 0; i < 10000; i += 100 {
-		for j := 0; j < 100; j++ {
+		for j := range 100 {
 			args[j*2] = i + j
 		}
 		_, err := stmt.Exec(args...)
@@ -442,6 +451,61 @@ func benchmark10kRows(b *testing.B, compress bool) {
 			if err = rows.Err(); err != nil {
 				b.Errorf("failed to read rows: %v", err)
 			}
+			rows.Close()
+		}
+	})
+}
+
+// BenchmarkReceiveMetadata measures performance of receiving lots of metadata compare to data in rows
+func BenchmarkReceiveMetadata(b *testing.B) {
+	tb := (*TB)(b)
+
+	// Create a table with 1000 integer fields
+	var createTableQuery strings.Builder
+	createTableQuery.WriteString("CREATE TABLE large_integer_table (")
+	for i := range 1000 {
+		createTableQuery.WriteString(fmt.Sprintf("col_%d INT", i))
+		if i < 999 {
+			createTableQuery.WriteString(", ")
+		}
+	}
+	createTableQuery.WriteString(")")
+
+	// Initialize database
+	db := initDB(b, false,
+		"DROP TABLE IF EXISTS large_integer_table",
+		createTableQuery.String(),
+		"INSERT INTO large_integer_table VALUES ("+
+			strings.Repeat("0,", 999)+"0)", // Insert a row of zeros
+	)
+	defer db.Close()
+
+	b.Run("query", func(b *testing.B) {
+		db.SetMaxIdleConns(0)
+		db.SetMaxIdleConns(1)
+
+		// Create a slice to scan all columns
+		values := make([]any, 1000)
+		valuePtrs := make([]any, 1000)
+		for j := range values {
+			valuePtrs[j] = &values[j]
+		}
+
+		// Prepare a SELECT query to retrieve metadata
+		stmt := tb.checkStmt(db.Prepare("SELECT * FROM large_integer_table LIMIT 1"))
+		defer stmt.Close()
+
+		// Benchmark metadata retrieval
+		b.ReportAllocs()
+		b.ResetTimer()
+		for range b.N {
+			rows := tb.checkRows(stmt.Query())
+
+			rows.Next()
+			// Scan the row
+			err := rows.Scan(valuePtrs...)
+			tb.check(err)
+
 			rows.Close()
 		}
 	})

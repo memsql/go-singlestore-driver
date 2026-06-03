@@ -26,6 +26,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -175,7 +176,6 @@ func runTests(t *testing.T, dsn string, tests ...func(dbt *DBTest)) {
 	cleanupSql := "DROP TABLE IF EXISTS test"
 
 	for _, test := range tests {
-		test := test
 		t.Run("default", func(t *testing.T) {
 			dbt := &DBTest{t, db}
 			t.Cleanup(func() {
@@ -219,7 +219,6 @@ func runTestsParallel(t *testing.T, dsn string, tests ...func(dbt *DBTest, table
 
 	t.Parallel()
 	for _, test := range tests {
-		test := test
 
 		t.Run("default", func(t *testing.T) {
 			t.Parallel()
@@ -1530,7 +1529,7 @@ func TestTLS(t *testing.T) {
 				dbt.Fatal(err.Error())
 			}
 
-			if (*value == nil) || (len(*value) == 0) {
+			if len(*value) == 0 {
 				dbt.Fatalf("no Cipher")
 			} else {
 				dbt.Logf("Cipher: %s", *value)
@@ -1957,7 +1956,7 @@ func TestPreparedManyCols(t *testing.T) {
 		rows.Close()
 
 		// Create 0byte string which we can't send via STMT_LONG_DATA.
-		for i := 0; i < numParams; i++ {
+		for i := range numParams {
 			params[i] = ""
 		}
 		rows, err = stmt.Query(params...)
@@ -2384,7 +2383,7 @@ func TestPing(t *testing.T) {
 			q.Close()
 
 			// Verify that Ping() clears both fields.
-			for i := 0; i < 2; i++ {
+			for range 2 {
 				if err := c.Ping(ctx); err != nil {
 					dbt.fail("Pinger", "Ping", err)
 				}
@@ -2584,7 +2583,7 @@ func TestMultiResultSet(t *testing.T) {
 			}
 			defer stmt.Close()
 
-			for j := 0; j < 2; j++ {
+			for j := range 2 {
 				rows, err := stmt.Query()
 				if err != nil {
 					dbt.Fatalf("%v (i=%d) (j=%d)", err, i, j)
@@ -2694,7 +2693,7 @@ func TestQueryMultipleResults(t *testing.T) {
 			c := conn.(*mysqlConn)
 
 			// Demonstrate that repeated queries reset the affectedRows
-			for i := 0; i < 2; i++ {
+			for range 2 {
 				_, err := qr.Query(`
 				INSERT INTO test (value) VALUES ('a'), ('b');
 				INSERT INTO test (value) VALUES ('c'), ('d'), ('e');
@@ -3335,11 +3334,11 @@ func TestRawBytesAreNotModified(t *testing.T) {
 
 	runTests(t, dsn, func(dbt *DBTest) {
 		dbt.mustExec("CREATE TABLE test (id int, value BLOB) CHARACTER SET utf8")
-		for i := 0; i < insertRows; i++ {
+		for i := range insertRows {
 			dbt.mustExec("INSERT INTO test VALUES (?, ?)", i+1, sqlBlobs[i&1])
 		}
 
-		for i := 0; i < contextRaceIterations; i++ {
+		for i := range contextRaceIterations {
 			func() {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
@@ -3595,8 +3594,8 @@ func TestConnectionAttributes(t *testing.T) {
 		rowsMap[attrName] = attrValue
 	}
 
-	connAttrs := append(append([]string{}, defaultAttrs...), customAttrs...)
-	expectedAttrValues := append(append([]string{}, defaultAttrValues...), customAttrValues...)
+	connAttrs := slices.Concat(defaultAttrs, customAttrs)
+	expectedAttrValues := slices.Concat(defaultAttrValues, customAttrValues)
 	for i := range connAttrs {
 		if gotValue := rowsMap[connAttrs[i]]; gotValue != expectedAttrValues[i] {
 			dbt.Errorf("expected %q, got %q", expectedAttrValues[i], gotValue)
@@ -3680,7 +3679,7 @@ func TestIssue1567(t *testing.T) {
 			count = max
 		}
 
-		for i := 0; i < count; i++ {
+		for range count {
 			timeout := time.Duration(mrand.Int63n(int64(rtt)))
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			dbt.db.PingContext(ctx)
