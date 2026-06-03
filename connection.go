@@ -291,7 +291,7 @@ func (mc *mysqlConn) interpolateParams(query string, args []driver.Value) (strin
 
 	for i := range lenQuery {
 		currentChar := query[i]
-		if state == stateEscape && !((currentChar == QUOTE_BYTE && singleQuotes) || (currentChar == DBL_QUOTE_BYTE && !singleQuotes)) {
+		if state == stateEscape && (currentChar != QUOTE_BYTE || !singleQuotes) && (currentChar != DBL_QUOTE_BYTE || singleQuotes) {
 			state = stateString
 			lastChar = currentChar
 			continue
@@ -422,9 +422,10 @@ func (mc *mysqlConn) interpolateParams(query string, args []driver.Value) (strin
 				lastIdx = i + 1
 			}
 		case BACKTICK_BYTE:
-			if state == stateBacktick {
+			switch state {
+			case stateBacktick:
 				state = stateNormal
-			} else if state == stateNormal {
+			case stateNormal:
 				state = stateBacktick
 			}
 		}
