@@ -5,7 +5,7 @@ set -euo pipefail
 # excluding chore:, test:, and ci: commits.
 
 latest_tag() {
-	git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-p[0-9]+)?$' | head -1
+	git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-p[0-9]+)?$' | head -1 || true
 }
 
 PREV_TAG="${1:-$(latest_tag)}"
@@ -16,5 +16,7 @@ if [[ -z "${PREV_TAG}" ]]; then
 fi
 
 echo "Changes since ${PREV_TAG}:" >&2
-git log "${PREV_TAG}..HEAD" --pretty=format:'%s' --no-merges \
-	| grep -viE '^(chore|test|ci):' || true
+commits=$(git log "${PREV_TAG}..HEAD" --pretty=format:'%s' --no-merges)
+if [[ -n "${commits}" ]]; then
+	printf '%s\n' "${commits}" | grep -viE '^(chore|test|ci):' || true
+fi
