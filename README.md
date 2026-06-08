@@ -70,7 +70,7 @@ This driver is a fork of [go-sql-driver/mysql](https://github.com/go-sql-driver/
 ## Installation
 Install the package to your [$GOPATH](https://github.com/golang/go/wiki/GOPATH "GOPATH") with the [go tool](https://golang.org/cmd/go/ "go command") from shell:
 ```bash
-go get -u github.com/singlestore-labs/go-singlestore-driver
+go get -u github.com/singlestore-labs/go-singlestore-driver/v2
 ```
 Make sure [Git is installed](https://git-scm.com/downloads) on your machine and in your system's `PATH`.
 
@@ -84,7 +84,7 @@ import (
 	"database/sql"
 	"time"
 
-	_ "github.com/singlestore-labs/go-singlestore-driver"
+	_ "github.com/singlestore-labs/go-singlestore-driver/v2"
 )
 
 // ...
@@ -353,7 +353,7 @@ import (
 	"database/sql/driver"
 	"log"
 
-	"github.com/singlestore-labs/go-singlestore-driver"
+	"github.com/singlestore-labs/go-singlestore-driver/v2"
 )
 
 conn, _ := db.Conn(ctx)
@@ -587,7 +587,7 @@ When a context is cancelled during query execution and `ctxCancellationEnabled` 
 ### `LOAD DATA LOCAL INFILE` support
 For this feature you need direct access to the package. Therefore you must change the import path (no `_`):
 ```go
-import "github.com/singlestore-labs/go-singlestore-driver"
+import "github.com/singlestore-labs/go-singlestore-driver/v2"
 ```
 
 Files must be explicitly allowed by registering them with `singlestore.RegisterLocalFile(filepath)` (recommended) or the allowlist check must be deactivated by using the DSN parameter `allowAllFiles=true` ([*Might be insecure!*](https://dev.mysql.com/doc/refman/8.0/en/load-data.html#load-data-local)).

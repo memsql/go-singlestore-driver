@@ -1,10 +1,10 @@
 # Changelog
 
-## v2.0.0 (2026-06-03)
+## v2.0.1 (2026-06-08)
 
 ### Breaking changes
 
-- The module path moved from `github.com/memsql/go-singlestore-driver` to `github.com/singlestore-labs/go-singlestore-driver`. Update import paths and `go.mod` accordingly. See [MIGRATION.md](MIGRATION.md).
+- The module path moved from `github.com/memsql/go-singlestore-driver` to `github.com/singlestore-labs/go-singlestore-driver/v2`. Update import paths and `go.mod` accordingly. See [MIGRATION.md](MIGRATION.md).
 - The Go package name is now `singlestore` (was `mysql`). Named imports must be updated; the exported driver type is renamed `MySQLDriver` -> `SingleStoreDriver`.
 - The driver registered with `database/sql` now uses the name `singlestore` instead of `mysql`. Update `sql.Open("mysql", dsn)` to `sql.Open("singlestore", dsn)`. This avoids init-time conflicts when both this module and `github.com/go-sql-driver/mysql` are imported.
 

@@ -1,4 +1,4 @@
-module github.com/singlestore-labs/go-singlestore-driver
+module github.com/singlestore-labs/go-singlestore-driver/v2
 
 go 1.24.0
 

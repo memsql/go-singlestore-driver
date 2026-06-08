@@ -8,14 +8,14 @@ This driver registers with `database/sql` as **`singlestore`**, package name is 
 1. **Module** — pin the new module path (optional; `goimports` / `go build` can add it once imports exist):
    ```bash
    # Pin a released semver tag:
-   go get github.com/singlestore-labs/go-singlestore-driver@v2.0.0
+   go get github.com/singlestore-labs/go-singlestore-driver@v2.0.1
    # or pin a specific commit (Go produces a v0.0.0-<date>-<sha> pseudo-version):
    go get github.com/singlestore-labs/go-singlestore-driver@abcdef1234567890
    ```
 
 2. **Blank import** registers the driver. Replace `github.com/go-sql-driver/mysql` or `github.com/memsql/go-singlestore-driver` with
    ```go
-   _ "github.com/singlestore-labs/go-singlestore-driver"
+   _ "github.com/singlestore-labs/go-singlestore-driver/v2"
    ```
    The blank import does not bind the package name, so it does **not** conflict with a named import of the same module elsewhere in the file (see point 4 and the package-name collision note below).
 
@@ -26,7 +26,7 @@ This driver registers with `database/sql` as **`singlestore`**, package name is 
 
 4. **Named imports** — rename the package prefix on symbols from this module:
    ```go
-   import "github.com/singlestore-labs/go-singlestore-driver" // package singlestore
+   import "github.com/singlestore-labs/go-singlestore-driver/v2" // package singlestore
 
    singlestore.ParseDSN(dsn)
    singlestore.NewConnector(cfg)
@@ -37,8 +37,8 @@ This driver registers with `database/sql` as **`singlestore`**, package name is 
    **Package-name collision.** If your own code lives in a package named `singlestore` (common in repos that wrap this driver), the bare `singlestore.X` form is ambiguous. Use an import alias instead:
    ```go
    import (
-       _ "github.com/singlestore-labs/go-singlestore-driver" // register driver
-       s2driver "github.com/singlestore-labs/go-singlestore-driver"
+       _ "github.com/singlestore-labs/go-singlestore-driver/v2" // register driver
+       s2driver "github.com/singlestore-labs/go-singlestore-driver/v2"
    )
 
    cfg, err := s2driver.ParseDSN(dsn)
