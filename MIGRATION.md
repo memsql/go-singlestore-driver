@@ -8,7 +8,7 @@ This driver registers with `database/sql` as **`singlestore`**, package name is 
 1. **Module** — pin the new module path (optional; `goimports` / `go build` can add it once imports exist):
    ```bash
    # Pin a released semver tag:
-   go get github.com/singlestore-labs/go-singlestore-driver@v2.0.0
+   go get github.com/singlestore-labs/go-singlestore-driver@v2.0.1
    # or pin a specific commit (Go produces a v0.0.0-<date>-<sha> pseudo-version):
    go get github.com/singlestore-labs/go-singlestore-driver@abcdef1234567890
    ```
