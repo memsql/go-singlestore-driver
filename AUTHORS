@@ -1,4 +1,5 @@
-# This is the official list of Go-MySQL-Driver authors for copyright purposes.
+# Official list of Go-SingleStore-Driver authors for copyright purposes.
+# Includes Go-MySQL-Driver authors and SingleStore fork contributors.
 
 # If you are submitting a patch, please add your name or the name of the
 # organization which holds the copyright to this list in alphabetical order.
@@ -17,6 +18,7 @@ Aidan <aidan.liu at pingcap.com>
 Alex Snast <alexsn at fb.com>
 Alexey Palazhchenko <alexey.palazhchenko at gmail.com>
 Andrew Reid <andrew.reid at tixtrack.com>
+Andrii Soluk <isoluchok at gmail.com>
 Animesh Ray <mail.rayanimesh at gmail.com>
 Ariel Mashraki <ariel at mashraki.co.il>
 Arne Hormann <arnehormann at gmail.com>
@@ -101,6 +103,7 @@ Olivier Mengué <dolmen at cpan.org>
 oscarzhao <oscarzhaosl at gmail.com>
 Paul Bonser <misterpib at gmail.com>
 Paulius Lozys <pauliuslozys at gmail.com>
+Pavlo Mishchenko <pmishchenko-ua at singlestore.com>
 Peter Schultz <peter.schultz at classmarkets.com>
 Phil Porada <philporada at gmail.com>
 Rebecca Chin <rchin at pivotal.io>
@@ -154,6 +157,7 @@ Percona LLC
 PingCAP Inc.
 Pivotal Inc.
 Shattered Silicon Ltd.
+SingleStore Inc.
 Stripe Inc.
 ThousandEyes
 Zendesk Inc.
