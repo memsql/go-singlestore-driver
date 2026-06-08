@@ -9,7 +9,7 @@
 // The driver should be used via the database/sql package:
 //
 //	import "database/sql"
-//	import _ "github.com/singlestore-labs/go-singlestore-driver"
+//	import _ "github.com/singlestore-labs/go-singlestore-driver/v2"
 //
 //	db, err := sql.Open("singlestore", "user:password@/dbname")
 //
