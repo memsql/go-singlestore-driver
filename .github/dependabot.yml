@@ -24,7 +24,6 @@ updates:
       codeql-action:
         patterns:
           - "github/codeql-action*"
-    groups:
       all-dependencies:
         patterns:
           - "*"
