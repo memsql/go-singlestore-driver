@@ -54,6 +54,18 @@ go list -m github.com/singlestore-labs/go-singlestore-driver@vX.Y.Z
 
 It may take a few minutes for [pkg.go.dev](https://pkg.go.dev/github.com/singlestore-labs/go-singlestore-driver) to index the new version.
 
+## Driver-Server Version Compatibility Matrix
+
+After each release, add a row for the new version rather than copying an older row's engine list. For each tag, take the list from the [EOL policy](https://docs.singlestore.com/db/v9.1/support/singlestore-software-end-of-life-eol-policy/) as of its release date and include any engine RC available by then.
+
+| Driver Version | Release date | Supported engine versions |
+| --- | --- | --- |
+| 2.0.1 | 2026-06-08 | 8.9, 9.0, 9.1 RC |
+| 2.0.0 | 2026-06-03 | 8.9, 9.0, 9.1 RC |
+| 1.9.3-p0 | 2026-04-03 | 8.7, 8.9, 9.0, 9.1 RC |
+| 1.9.2-p2 | 2026-02-11 | 8.7, 8.9, 9.0 |
+| 1.9.2-p1 | 2026-02-03 | 8.7, 8.9, 9.0 |
+
 ## If something goes wrong
 
 - **Tests failed after tagging:** fix `master`, delete the tag on GitHub and locally, then tag again. The release.yml workflow always publishes as a pre-release first (see step 4), so the failed run will also leave a pre-release that needs to be deleted.
